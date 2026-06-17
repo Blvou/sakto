@@ -4,8 +4,8 @@ import { FlashList } from '@shopify/flash-list';
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/src/hooks/use-theme';
 import { useResponsive } from '@/src/hooks/use-responsive';
-import { useAppStore } from '@/src/stores/app-store';
 import { Fab, FabBackdrop, FabSheet } from '@/src/design-system/components/Fab';
+import { Skeleton } from '@/src/design-system/components/Skeleton';
 import { HomeHeader } from '@/src/features/home/components/HomeHeader';
 import { SearchBar } from '@/src/features/home/components/SearchBar';
 import { PromoCarousel } from '@/src/features/home/components/PromoCarousel';
@@ -15,7 +15,6 @@ import {
   ListingCard,
   ListingFilters,
 } from '@/src/features/home/components/ListingGrid';
-import { HomeSkeleton } from '@/src/features/home/components/HomeSkeleton';
 import { useListings } from '@/src/features/listings/hooks/use-listings';
 import type { ListingCardItem } from '@/src/features/listings/types';
 import type { Category } from '@/src/features/home/data/mock-data';
@@ -25,12 +24,42 @@ import {
 } from '@/src/features/home/data/mock-data';
 import { useVehicles } from '@/src/features/rentals/hooks/use-vehicles';
 
+function ScooterRowSkeleton({ cardWidth, imageHeight }: { cardWidth: number; imageHeight: number }) {
+  return (
+    <View style={{ flexDirection: 'row', gap: 12 }}>
+      <Skeleton width={cardWidth} height={imageHeight + 100} borderRadius={12} />
+      <Skeleton width={cardWidth} height={imageHeight + 100} borderRadius={12} />
+    </View>
+  );
+}
+
+function ListingGridSkeleton({
+  cardWidth,
+  scale,
+}: {
+  cardWidth: number;
+  scale: (value: number) => number;
+}) {
+  return (
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+      {Array.from({ length: 4 }).map((_, index) => (
+        <Skeleton
+          key={index}
+          width={cardWidth}
+          height={scale(200)}
+          borderRadius={12}
+          style={{ marginBottom: 16 }}
+        />
+      ))}
+    </View>
+  );
+}
+
 export default function HomeScreen() {
   const { colors } = useTheme();
   const router = useRouter();
-  const { cardWidth, horizontalPadding, listBottomPadding } = useResponsive();
-  const isLoading = useAppStore((s) => s.isHomeLoading);
-  const setHomeLoading = useAppStore((s) => s.setHomeLoading);
+  const { cardWidth, horizontalPadding, listBottomPadding, scooterCardWidth, scale } =
+    useResponsive();
 
   const {
     listings,
@@ -51,15 +80,15 @@ export default function HomeScreen() {
   const [activeFilter, setActiveFilter] = useState('New');
   const [quickFilter, setQuickFilter] = useState('Nearby');
 
+  const showScooterSkeleton = vehiclesLoading && vehicles.length === 0;
+  const showListingSkeleton = listingsLoading && listings.length === 0;
+  const scooterImageHeight = Math.round(scooterCardWidth * (120 / 180));
+
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await Promise.all([refetch(), refetchVehicles()]);
     setRefreshing(false);
   }, [refetch, refetchVehicles]);
-
-  const toggleLoading = useCallback(() => {
-    setHomeLoading(!isLoading);
-  }, [isLoading, setHomeLoading]);
 
   const handleListingPress = useCallback(
     (id: string) => {
@@ -111,36 +140,62 @@ export default function HomeScreen() {
         <SearchBar activeFilter={quickFilter} onFilterPress={setQuickFilter} />
         <PromoCarousel banners={promoBanners} />
         <CategoryGrid categories={categories} onCategoryPress={handleCategoryPress} />
-        <ScooterSection
-          scooters={vehicles}
-          onSeeAll={() => router.push('/(tabs)/search')}
-          onScooterPress={handleScooterPress}
-        />
+        {showScooterSkeleton ? (
+          <View style={{ marginTop: 8, marginBottom: 16 }}>
+            <Skeleton width={scale(200)} height={18} borderRadius={4} style={{ marginBottom: 12 }} />
+            <ScooterRowSkeleton cardWidth={scooterCardWidth} imageHeight={scooterImageHeight} />
+          </View>
+        ) : (
+          <ScooterSection
+            scooters={vehicles}
+            onSeeAll={() => router.push('/(tabs)/search')}
+            onScooterPress={handleScooterPress}
+          />
+        )}
         <ListingFilters activeFilter={activeFilter} onFilterChange={setActiveFilter} />
+        {showListingSkeleton ? (
+          <ListingGridSkeleton cardWidth={cardWidth} scale={scale} />
+        ) : null}
       </View>
     ),
-    [quickFilter, activeFilter, handleCategoryPress, handleScooterPress, vehicles, router]
+    [
+      quickFilter,
+      activeFilter,
+      handleCategoryPress,
+      handleScooterPress,
+      vehicles,
+      router,
+      showScooterSkeleton,
+      showListingSkeleton,
+      scooterCardWidth,
+      scooterImageHeight,
+      cardWidth,
+      scale,
+    ]
   );
 
-  if (isLoading || listingsLoading || vehiclesLoading) {
-    return <HomeSkeleton />;
-  }
+  const listEmptyComponent = useMemo(() => {
+    if (showListingSkeleton || listings.length > 0) return null;
+    return (
+      <View style={{ paddingVertical: 24, alignItems: 'center' }}>
+        <Skeleton width={cardWidth} height={scale(200)} borderRadius={12} />
+      </View>
+    );
+  }, [showListingSkeleton, listings.length, cardWidth, scale]);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <HomeHeader
-        onNotificationsPress={toggleLoading}
-        onChatPress={handleChatPress}
-      />
+      <HomeHeader onChatPress={handleChatPress} />
 
       <FlashList
-        data={listings}
+        data={showListingSkeleton ? [] : listings}
         numColumns={2}
         keyExtractor={keyExtractor}
         renderItem={renderItem}
         extraData={cardWidth}
         drawDistance={250}
         ListHeaderComponent={listHeader}
+        ListEmptyComponent={listEmptyComponent}
         contentContainerStyle={{ paddingBottom: listBottomPadding, paddingHorizontal: horizontalPadding }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />

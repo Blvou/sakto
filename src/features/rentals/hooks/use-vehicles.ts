@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { shouldUseCatalogMock } from '@/src/lib/catalog';
 import { isSupabaseConfigured } from '@/src/lib/supabase';
 import { fetchVehicleById, fetchVehiclesPage, mockVehicleCards } from '../api/vehicles';
 import type { VehicleSearchParams, VehiclesPage, VehiclesPageCursor } from '../types';
@@ -10,16 +11,31 @@ const MOCK_PAGE: VehiclesPage = {
   nextCursor: undefined,
 };
 
+function mockInitialData() {
+  return {
+    pages: [MOCK_PAGE],
+    pageParams: [undefined] as (VehiclesPageCursor | undefined)[],
+  };
+}
+
 export function useInfiniteVehicles(params?: VehicleSearchParams) {
+  const useMock = shouldUseCatalogMock();
+
   return useInfiniteQuery({
-    queryKey: rentalQueryKeys.vehicleList(params),
+    queryKey: [...rentalQueryKeys.vehicleList(params), useMock ? 'mock' : 'live'] as const,
     queryFn: async ({ pageParam }) => {
-      if (!isSupabaseConfigured) return MOCK_PAGE;
-      return fetchVehiclesPage(params, pageParam);
+      if (useMock) return MOCK_PAGE;
+      try {
+        return await fetchVehiclesPage(params, pageParam);
+      } catch {
+        return MOCK_PAGE;
+      }
     },
     initialPageParam: undefined as VehiclesPageCursor | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor,
+    initialData: useMock ? mockInitialData() : undefined,
     staleTime: 5 * 60_000,
+    retry: useMock ? false : 2,
   });
 }
 

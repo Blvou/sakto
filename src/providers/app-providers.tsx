@@ -5,6 +5,12 @@ import { Toaster } from 'sonner-native';
 import { queryClient, setupQueryPersistence } from '@/src/lib/query-client';
 import { useAuthInit, useAuth } from '@/src/features/auth/hooks/use-auth';
 
+function isPublicTab(segments: string[]): boolean {
+  if (segments[0] !== '(tabs)') return false;
+  const tab = segments[1] ?? 'index';
+  return tab === 'index' || tab === 'search';
+}
+
 function AuthGate({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isInitialized } = useAuth();
   const segments = useSegments();
@@ -14,8 +20,9 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     if (!isInitialized) return;
 
     const inAuthGroup = segments[0] === '(auth)';
+    const onPublicTab = isPublicTab(segments);
 
-    if (!isAuthenticated && !inAuthGroup) {
+    if (!isAuthenticated && !inAuthGroup && !onPublicTab) {
       router.replace('/(auth)/login');
     } else if (isAuthenticated && inAuthGroup) {
       router.replace('/(tabs)');

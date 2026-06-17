@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
-import { isSupabaseConfigured } from '@/src/lib/supabase';
+import { shouldUseCatalogMock } from '@/src/lib/catalog';
 import { fetchListingsPage, mockToCardItems } from '../api/listings';
 import { listingQueryKeys, type ListingsPage, type ListingsPageCursor } from '../types';
 import { flattenListings } from '../utils/listings-cache';
@@ -10,16 +10,29 @@ const MOCK_PAGE: ListingsPage = {
   nextCursor: undefined,
 };
 
+const MOCK_INITIAL_DATA = {
+  pages: [MOCK_PAGE],
+  pageParams: [undefined] as (ListingsPageCursor | undefined)[],
+};
+
 export function useInfiniteListings() {
+  const useMock = shouldUseCatalogMock();
+
   return useInfiniteQuery({
-    queryKey: listingQueryKeys.list,
+    queryKey: [...listingQueryKeys.list, useMock ? 'mock' : 'live'] as const,
     queryFn: async ({ pageParam }) => {
-      if (!isSupabaseConfigured) return MOCK_PAGE;
-      return fetchListingsPage(pageParam);
+      if (useMock) return MOCK_PAGE;
+      try {
+        return await fetchListingsPage(pageParam);
+      } catch {
+        return MOCK_PAGE;
+      }
     },
     initialPageParam: undefined as ListingsPageCursor | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor,
+    initialData: useMock ? MOCK_INITIAL_DATA : undefined,
     staleTime: 5 * 60_000,
+    retry: useMock ? false : 2,
   });
 }
 
