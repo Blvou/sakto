@@ -47,6 +47,20 @@ export async function signIn({ email, password }: LoginFormData) {
 export async function signInWithSocialProvider(provider: SocialAuthProvider) {
   assertAuthContext();
   const redirectTo = getOAuthRedirectUrl();
+
+  if (Platform.OS === 'web') {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo },
+    });
+    if (error) throw error;
+    if (!data.url) {
+      throw new Error('Could not start social sign in. Please try again.');
+    }
+    window.location.assign(data.url);
+    return { cancelled: true as const, session: null };
+  }
+
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider,
     options: {
