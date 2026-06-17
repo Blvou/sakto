@@ -10,14 +10,16 @@ import {
   Platform,
   ActivityIndicator,
 } from 'react-native';
-import { ArrowLeft, Camera, ChevronRight, MapPin } from 'lucide-react-native';
+import { Image } from 'expo-image';
+import { ArrowLeft, Camera, ChevronRight, MapPin, X } from 'lucide-react-native';
 import { useTheme } from '@/src/hooks/use-theme';
 import { typography } from '@/src/design-system/tokens';
 import { toast } from 'sonner-native';
 import { createListingSchema } from '@/src/features/listings/schemas';
 import { useCreateListing } from '@/src/features/listings/hooks/use-create-listing';
-import { createVehicleSchema } from '@/src/features/rentals/schemas';
+import { createVehicleMutationSchema } from '@/src/features/rentals/schemas';
 import { useCreateVehicle } from '@/src/features/rentals/hooks/use-create-vehicle';
+import { usePickVehiclePhotos } from '@/src/features/rentals/hooks/use-pick-vehicle-photos';
 
 const STEPS = ['Photos', 'Details', 'Price', 'Location'] as const;
 
@@ -28,6 +30,7 @@ export default function PublishScreen() {
   const router = useRouter();
   const createListing = useCreateListing();
   const createVehicle = useCreateVehicle();
+  const { photos, pickPhotos, removePhoto, movePhotoToCover, maxPhotos } = usePickVehiclePhotos();
 
   const [step, setStep] = useState(0);
   const [title, setTitle] = useState('');
@@ -43,12 +46,16 @@ export default function PublishScreen() {
 
   const handleNext = () => {
     if (step < STEPS.length - 1) {
+      if (isScooter && step === 0 && photos.length === 0) {
+        toast.error('Add at least one photo');
+        return;
+      }
       setStep(step + 1);
       return;
     }
 
     if (isScooter) {
-      const parsed = createVehicleSchema.safeParse({
+      const parsed = createVehicleMutationSchema.safeParse({
         title,
         description,
         brand,
@@ -57,7 +64,7 @@ export default function PublishScreen() {
         location,
         city: location.split(',')[0]?.trim() ?? '',
         instantBooking,
-        photoPaths: [],
+        photoUris: photos.map((photo) => photo.uri),
       });
 
       if (!parsed.success) {
@@ -124,33 +131,130 @@ export default function PublishScreen() {
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
         {step === 0 && (
           <View>
-            <Pressable
-              style={{
-                height: 200,
-                borderRadius: 16,
-                borderWidth: 2,
-                borderStyle: 'dashed',
-                borderColor: colors.primary,
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: `${colors.primary}08`,
-              }}
-            >
-              <Camera color={colors.primary} size={40} strokeWidth={1.5} />
-              <Text
+            {isScooter ? (
+              <View style={{ gap: 12 }}>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                  {photos.map((photo, index) => (
+                    <Pressable
+                      key={photo.uri}
+                      onPress={() => movePhotoToCover(index)}
+                      style={{ width: '31%', aspectRatio: 1, borderRadius: 12, overflow: 'hidden' }}
+                    >
+                      <Image
+                        source={{ uri: photo.uri }}
+                        style={{ width: '100%', height: '100%', backgroundColor: colors.border }}
+                        contentFit="cover"
+                      />
+                      {index === 0 ? (
+                        <View
+                          style={{
+                            position: 'absolute',
+                            top: 6,
+                            left: 6,
+                            backgroundColor: colors.primary,
+                            borderRadius: 6,
+                            paddingHorizontal: 6,
+                            paddingVertical: 2,
+                          }}
+                        >
+                          <Text
+                            style={{
+                              ...typography.caption,
+                              color: '#FFF',
+                              fontFamily: 'PlusJakartaSans_600SemiBold',
+                              fontSize: 10,
+                            }}
+                          >
+                            Cover
+                          </Text>
+                        </View>
+                      ) : null}
+                      <Pressable
+                        onPress={() => removePhoto(index)}
+                        style={{
+                          position: 'absolute',
+                          top: 6,
+                          right: 6,
+                          width: 24,
+                          height: 24,
+                          borderRadius: 12,
+                          backgroundColor: 'rgba(0,0,0,0.55)',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <X color="#FFF" size={14} />
+                      </Pressable>
+                    </Pressable>
+                  ))}
+                  {photos.length < maxPhotos ? (
+                    <Pressable
+                      onPress={pickPhotos}
+                      style={{
+                        width: '31%',
+                        aspectRatio: 1,
+                        borderRadius: 12,
+                        borderWidth: 2,
+                        borderStyle: 'dashed',
+                        borderColor: colors.primary,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: `${colors.primary}08`,
+                      }}
+                    >
+                      <Camera color={colors.primary} size={28} strokeWidth={1.5} />
+                    </Pressable>
+                  ) : null}
+                </View>
+                <Pressable
+                  onPress={pickPhotos}
+                  style={{
+                    minHeight: 52,
+                    borderRadius: 12,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: colors.surface,
+                  }}
+                >
+                  <Text style={{ ...typography.body, color: colors.primary, fontFamily: 'PlusJakartaSans_600SemiBold' }}>
+                    {photos.length === 0 ? 'Add photos' : 'Add more photos'}
+                  </Text>
+                </Pressable>
+                <Text style={{ ...typography.caption, color: colors.textSecondary }}>
+                  Up to {maxPhotos} photos. First photo is the cover. Tap a photo to set it as cover.
+                </Text>
+              </View>
+            ) : (
+              <Pressable
                 style={{
-                  ...typography.body,
-                  color: colors.primary,
-                  marginTop: 12,
-                  fontFamily: 'PlusJakartaSans_600SemiBold',
+                  height: 200,
+                  borderRadius: 16,
+                  borderWidth: 2,
+                  borderStyle: 'dashed',
+                  borderColor: colors.primary,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: `${colors.primary}08`,
                 }}
               >
-                Add photos
-              </Text>
-              <Text style={{ ...typography.caption, color: colors.textSecondary, marginTop: 4 }}>
-                Up to 10 photos. First photo is the cover.
-              </Text>
-            </Pressable>
+                <Camera color={colors.primary} size={40} strokeWidth={1.5} />
+                <Text
+                  style={{
+                    ...typography.body,
+                    color: colors.primary,
+                    marginTop: 12,
+                    fontFamily: 'PlusJakartaSans_600SemiBold',
+                  }}
+                >
+                  Add photos
+                </Text>
+                <Text style={{ ...typography.caption, color: colors.textSecondary, marginTop: 4 }}>
+                  Up to 10 photos. First photo is the cover.
+                </Text>
+              </Pressable>
+            )}
           </View>
         )}
 

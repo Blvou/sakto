@@ -25,6 +25,9 @@ export function useCreateBooking() {
         queryClient.invalidateQueries({ queryKey: rentalQueryKeys.renterBookings(userId) });
       }
       queryClient.invalidateQueries({ queryKey: rentalQueryKeys.vehicleDetail(input.vehicleId) });
+      queryClient.invalidateQueries({
+        queryKey: ['rentals', 'vehicles', input.vehicleId, 'blocked'],
+      });
       toast.success('Booking request sent');
     },
     onError: (err) => {

@@ -65,6 +65,7 @@ export interface Database {
         Row: {
           id: string;
           listing_id: string | null;
+          booking_id: string | null;
           buyer_id: string;
           created_at: string;
           updated_at: string;
@@ -72,11 +73,13 @@ export interface Database {
         Insert: {
           id?: string;
           listing_id?: string | null;
+          booking_id?: string | null;
           buyer_id: string;
           created_at?: string;
           updated_at?: string;
         };
         Update: {
+          booking_id?: string | null;
           updated_at?: string;
         };
         Relationships: [];
@@ -309,6 +312,9 @@ export interface Database {
           listing_id: string | null;
           listing_title: string | null;
           listing_image_url: string | null;
+          booking_id: string | null;
+          vehicle_title: string | null;
+          vehicle_image_path: string | null;
           other_user_id: string;
           other_user_display_name: string;
           other_user_avatar_url: string | null;
@@ -351,6 +357,7 @@ export interface Database {
             preferred_lang: PreferredLang;
           };
           listing_title: string | null;
+          booking_id: string | null;
           messages: {
             id: string;
             conversation_id: string;
@@ -361,6 +368,29 @@ export interface Database {
           has_more_messages: boolean;
           recipient_last_read_at: string | null;
           delivered_message_ids: string[];
+        };
+      };
+      get_vehicle_blocked_dates: {
+        Args: {
+          p_vehicle_id: string;
+          p_from: string;
+          p_to: string;
+        };
+        Returns: string[];
+      };
+      get_or_create_booking_conversation: {
+        Args: { p_booking_id: string };
+        Returns: {
+          id: string;
+          booking_id: string;
+          vehicle_title: string | null;
+          vehicle_image_path: string | null;
+          other_user: {
+            id: string;
+            display_name: string;
+            avatar_url: string | null;
+            preferred_lang: PreferredLang;
+          };
         };
       };
     };

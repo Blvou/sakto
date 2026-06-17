@@ -3,6 +3,7 @@ import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useRouter } from 'expo-router';
 import { ArrowLeft } from 'lucide-react-native';
+import { useStartBookingConversation } from '@/src/features/chat/hooks/use-start-booking-conversation';
 import { typography } from '@/src/design-system/tokens';
 import { BookingListItem } from '@/src/features/rentals/components/BookingListItem';
 import { useOwnerBookings, useUpdateBookingStatus } from '@/src/features/rentals/hooks/use-bookings';
@@ -14,6 +15,7 @@ export default function OwnerBookingsScreen() {
   const router = useRouter();
   const { data: bookings = [], isLoading, isError, refetch } = useOwnerBookings();
   const updateStatus = useUpdateBookingStatus();
+  const startBookingChat = useStartBookingConversation();
 
   const renderItem = useCallback(
     ({ item }: { item: BookingItem }) => (
@@ -21,11 +23,13 @@ export default function OwnerBookingsScreen() {
         booking={item}
         role="owner"
         isUpdating={updateStatus.isPending}
+        isMessaging={startBookingChat.isPending}
         onConfirm={(bookingId) => updateStatus.mutate({ bookingId, status: 'confirmed' })}
         onDecline={(bookingId) => updateStatus.mutate({ bookingId, status: 'declined' })}
+        onMessage={(bookingId) => startBookingChat.mutate(bookingId)}
       />
     ),
-    [updateStatus]
+    [startBookingChat, updateStatus]
   );
 
   return (

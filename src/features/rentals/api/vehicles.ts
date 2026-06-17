@@ -202,4 +202,19 @@ export async function createVehicle(ownerId: string, input: CreateVehicleInput):
   return data.id;
 }
 
+export async function fetchVehicleBlockedDates(
+  vehicleId: string,
+  from: string,
+  to: string
+): Promise<string[]> {
+  const { data, error } = await supabase.rpc('get_vehicle_blocked_dates', {
+    p_vehicle_id: vehicleId,
+    p_from: from,
+    p_to: to,
+  });
+
+  if (error) throw error;
+  return (data ?? []) as string[];
+}
+
 export { getVehiclePhotoSource };

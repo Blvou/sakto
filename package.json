@@ -57,6 +57,9 @@
     "audit:chat": "node .cursor/skills/audit-chat-security/scripts/run-audit.mjs all",
     "audit:chat:static": "node .cursor/skills/audit-chat-security/scripts/run-audit.mjs static",
     "audit:chat:live": "node .cursor/skills/audit-chat-security/scripts/run-audit.mjs live",
+    "audit:rental": "node .cursor/skills/audit-rental-security/scripts/run-audit.mjs all",
+    "audit:rental:static": "node .cursor/skills/audit-rental-security/scripts/run-audit.mjs static",
+    "audit:rental:live": "node .cursor/skills/audit-rental-security/scripts/run-audit.mjs live",
     "seed:chat-users": "node scripts/seed-chat-test-users.mjs",
     "test:chat": "node scripts/test-chat-flow.mjs"
   },

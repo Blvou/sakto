@@ -10,8 +10,17 @@ import { useAuth } from '@/src/features/auth/hooks/use-auth';
 import { scooters, formatPrice } from '@/src/features/home/data/mock-data';
 import { getVehiclePhotoSource } from '@/src/features/rentals/api/vehicles';
 import { useCreateBooking } from '@/src/features/rentals/hooks/use-bookings';
+import { useVehicleBlockedDates } from '@/src/features/rentals/hooks/use-vehicle-blocked-dates';
 import { useVehicle } from '@/src/features/rentals/hooks/use-vehicles';
 import { createBookingSchema } from '@/src/features/rentals/schemas';
+import {
+  addDays,
+  buildDateRange,
+  formatDateChip,
+  isDateBlocked,
+  isRangeBlocked,
+  toDateOnly,
+} from '@/src/features/rentals/utils/date-availability';
 import { useTheme } from '@/src/hooks/use-theme';
 import { isSupabaseConfigured } from '@/src/lib/supabase';
 
@@ -21,15 +30,7 @@ const MAP_PINS = [
   { id: '3', top: 144, left: 126 },
 ];
 
-function addDays(date: Date, days: number): Date {
-  const next = new Date(date);
-  next.setDate(next.getDate() + days);
-  return next;
-}
-
-function toDateOnly(date: Date): string {
-  return date.toISOString().slice(0, 10);
-}
+const DATE_HORIZON_DAYS = 30;
 
 export default function ScooterDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -37,12 +38,14 @@ export default function ScooterDetailScreen() {
   const router = useRouter();
   const { userId } = useAuth();
   const [selectedDays, setSelectedDays] = useState(1);
+  const [startDate, setStartDate] = useState(toDateOnly(new Date()));
   const createBooking = useCreateBooking();
   const vehicleQuery = useVehicle(id);
 
   const mockScooter = scooters.find((s) => s.id === id) ?? scooters[0];
   const vehicle = vehicleQuery.data;
   const isMock = !isSupabaseConfigured || id.startsWith('s');
+  const blockedDatesQuery = useVehicleBlockedDates(isMock ? undefined : id, DATE_HORIZON_DAYS);
 
   const detail = useMemo(() => {
     if (vehicle) {
@@ -76,10 +79,39 @@ export default function ScooterDetailScreen() {
 
   const serviceFee = 50;
   const total = detail.pricePerDay * selectedDays;
-  const startDate = toDateOnly(new Date());
-  const endDate = toDateOnly(addDays(new Date(), selectedDays - 1));
+  const endDate = toDateOnly(addDays(new Date(`${startDate}T00:00:00.000Z`), selectedDays - 1));
+  const blockedDates = useMemo(
+    () => new Set(blockedDatesQuery.data ?? []),
+    [blockedDatesQuery.data]
+  );
+  const dateOptions = useMemo(() => buildDateRange(new Date(), DATE_HORIZON_DAYS), []);
+  const isSelectedRangeBlocked = isRangeBlocked(startDate, selectedDays, blockedDates);
   const isOwnVehicle = !!userId && detail.ownerId === userId;
-  const canBook = !isMock && !!vehicle && !isOwnVehicle && !createBooking.isPending;
+  const canBook =
+    !isMock && !!vehicle && !isOwnVehicle && !createBooking.isPending && !isSelectedRangeBlocked;
+
+  const handleSelectStartDate = (date: string) => {
+    if (isDateBlocked(date, blockedDates)) {
+      toast.error('This date is not available');
+      return;
+    }
+
+    if (isRangeBlocked(date, selectedDays, blockedDates)) {
+      toast.error('Part of this rental period is already booked');
+      return;
+    }
+
+    setStartDate(date);
+  };
+
+  const handleSelectDays = (days: number) => {
+    if (isRangeBlocked(startDate, days, blockedDates)) {
+      toast.error('Part of this rental period is already booked');
+      return;
+    }
+
+    setSelectedDays(days);
+  };
 
   const handleBook = () => {
     if (isMock) {
@@ -282,12 +314,64 @@ export default function ScooterDetailScreen() {
             {detail.description}
           </Text>
 
-          <Text style={{ ...typography.h3, color: colors.textPrimary, marginTop: 24 }}>Rental period</Text>
+          <Text style={{ ...typography.h3, color: colors.textPrimary, marginTop: 24 }}>Start date</Text>
+          {blockedDatesQuery.isLoading && !isMock ? (
+            <View style={{ marginTop: 12, height: 44, justifyContent: 'center' }}>
+              <ActivityIndicator color={colors.primary} />
+            </View>
+          ) : blockedDatesQuery.isError && !isMock ? (
+            <Text style={{ ...typography.caption, color: colors.secondary, marginTop: 12 }}>
+              Could not load availability. Pull to refresh or try again.
+            </Text>
+          ) : (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: 8, paddingVertical: 12 }}
+            >
+              {dateOptions.map((date) => {
+                const value = toDateOnly(date);
+                const blocked = isDateBlocked(value, blockedDates);
+                const selected = value === startDate;
+
+                return (
+                  <Pressable
+                    key={value}
+                    disabled={blocked}
+                    onPress={() => handleSelectStartDate(value)}
+                    style={{
+                      minWidth: 72,
+                      paddingVertical: 12,
+                      paddingHorizontal: 10,
+                      borderRadius: 12,
+                      alignItems: 'center',
+                      backgroundColor: selected ? colors.primary : colors.surface,
+                      borderWidth: 1,
+                      borderColor: selected ? colors.primary : colors.border,
+                      opacity: blocked ? 0.45 : 1,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        ...typography.caption,
+                        fontFamily: 'PlusJakartaSans_600SemiBold',
+                        color: selected ? '#FFF' : colors.textPrimary,
+                      }}
+                    >
+                      {formatDateChip(date)}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          )}
+
+          <Text style={{ ...typography.h3, color: colors.textPrimary, marginTop: 8 }}>Rental period</Text>
           <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
             {[1, 3, 7, 14].map((days) => (
               <Pressable
                 key={days}
-                onPress={() => setSelectedDays(days)}
+                onPress={() => handleSelectDays(days)}
                 style={{
                   flex: 1,
                   paddingVertical: 12,
@@ -354,6 +438,11 @@ export default function ScooterDetailScreen() {
               Request dates: {startDate} to {endDate}. No online payment in MVP.
             </Text>
           </View>
+          {isSelectedRangeBlocked ? (
+            <Text style={{ ...typography.caption, color: colors.secondary, marginTop: 8 }}>
+              Selected dates overlap with an existing booking.
+            </Text>
+          ) : null}
         </View>
       </ScrollView>
 

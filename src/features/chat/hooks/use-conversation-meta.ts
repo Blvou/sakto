@@ -53,7 +53,7 @@ export function getConversationMetaFromCache(
 
   return {
     otherUser: preview.other_user,
-    listingTitle: preview.listing_title,
+    listingTitle: preview.vehicle_title ?? preview.listing_title,
   };
 }
 

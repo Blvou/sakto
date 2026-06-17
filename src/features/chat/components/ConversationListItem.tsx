@@ -29,10 +29,14 @@ export const ConversationListItem = memo(function ConversationListItem({
   onPressIn,
 }: Props) {
   const { colors } = useTheme();
-  const { other_user, listing_title, last_message, last_message_at, unread_count } = conversation;
-  const subtitle = listing_title
-    ? `${listing_title}: ${last_message ?? 'No messages yet'}`
-    : last_message ?? 'No messages yet';
+  const { other_user, listing_title, vehicle_title, last_message, last_message_at, unread_count } =
+    conversation;
+  const contextTitle = vehicle_title ?? listing_title;
+  const subtitle = vehicle_title
+    ? `Rental: ${vehicle_title}: ${last_message ?? 'No messages yet'}`
+    : contextTitle
+      ? `${contextTitle}: ${last_message ?? 'No messages yet'}`
+      : last_message ?? 'No messages yet';
 
   return (
     <Pressable

@@ -58,6 +58,8 @@ export const rentalQueryKeys = {
   vehicleList: (params?: VehicleSearchParams) =>
     ['rentals', 'vehicles', params?.query ?? '', params?.city ?? ''] as const,
   vehicleDetail: (id: string) => ['rentals', 'vehicles', id] as const,
+  vehicleBlockedDates: (id: string, from: string, to: string) =>
+    ['rentals', 'vehicles', id, 'blocked', from, to] as const,
   renterBookings: (userId: string) => ['rentals', 'bookings', 'renter', userId] as const,
   ownerBookings: (userId: string) => ['rentals', 'bookings', 'owner', userId] as const,
 };

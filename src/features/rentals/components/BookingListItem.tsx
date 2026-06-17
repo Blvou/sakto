@@ -22,7 +22,9 @@ interface BookingListItemProps {
   onConfirm?: (bookingId: string) => void;
   onDecline?: (bookingId: string) => void;
   onCancel?: (bookingId: string) => void;
+  onMessage?: (bookingId: string) => void;
   isUpdating?: boolean;
+  isMessaging?: boolean;
 }
 
 export const BookingListItem = memo(function BookingListItem({
@@ -31,7 +33,9 @@ export const BookingListItem = memo(function BookingListItem({
   onConfirm,
   onDecline,
   onCancel,
+  onMessage,
   isUpdating = false,
+  isMessaging = false,
 }: BookingListItemProps) {
   const { colors } = useTheme();
   const cover = booking.vehicle.photos[0];
@@ -43,6 +47,8 @@ export const BookingListItem = memo(function BookingListItem({
   const handleConfirm = useCallback(() => onConfirm?.(booking.id), [booking.id, onConfirm]);
   const handleDecline = useCallback(() => onDecline?.(booking.id), [booking.id, onDecline]);
   const handleCancel = useCallback(() => onCancel?.(booking.id), [booking.id, onCancel]);
+  const handleMessage = useCallback(() => onMessage?.(booking.id), [booking.id, onMessage]);
+  const canMessage = booking.status !== 'declined' && booking.status !== 'cancelled';
 
   return (
     <View
@@ -89,8 +95,28 @@ export const BookingListItem = memo(function BookingListItem({
         </Text>
       ) : null}
 
-      {(canOwnerAct || canRenterCancel) && (
-        <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
+      {(canOwnerAct || canRenterCancel || (canMessage && onMessage)) && (
+        <View style={{ flexDirection: 'row', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+          {canMessage && onMessage ? (
+            <Pressable
+              onPress={handleMessage}
+              disabled={isMessaging}
+              style={{
+                flexGrow: 1,
+                flexBasis: '45%',
+                minHeight: 44,
+                borderRadius: 12,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: colors.primary,
+                opacity: isMessaging ? 0.7 : 1,
+              }}
+            >
+              <Text style={{ ...typography.body, color: '#FFF', fontFamily: 'PlusJakartaSans_700Bold' }}>
+                Message
+              </Text>
+            </Pressable>
+          ) : null}
           {canOwnerAct && (
             <>
               <Pressable

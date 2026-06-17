@@ -10,10 +10,16 @@ export const createVehicleSchema = z.object({
   location: z.string().min(2, 'Location is required').max(120),
   city: z.string().min(2).max(80).optional().or(z.literal('')),
   instantBooking: z.boolean().default(false),
-  photoPaths: z.array(z.string().min(1)).max(10).default([]),
+  photoPaths: z.array(z.string().min(1)).min(1, 'Add at least one photo').max(10),
 });
 
 export type CreateVehicleInput = z.infer<typeof createVehicleSchema>;
+
+export const createVehicleMutationSchema = createVehicleSchema.omit({ photoPaths: true }).extend({
+  photoUris: z.array(z.string().min(1)).min(1, 'Add at least one photo').max(10),
+});
+
+export type CreateVehicleMutationInput = z.infer<typeof createVehicleMutationSchema>;
 
 export const createBookingSchema = z.object({
   vehicleId: z.uuid(),

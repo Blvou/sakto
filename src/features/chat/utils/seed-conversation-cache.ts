@@ -7,9 +7,12 @@ import { syncUnreadTotalFromConversations } from './unread-cache';
 
 export interface CreateConversationResult {
   id: string;
-  listing_id: string;
+  listing_id: string | null;
   listing_title: string | null;
   listing_image_url: string | null;
+  booking_id: string | null;
+  vehicle_title: string | null;
+  vehicle_image_url: string | null;
   other_user: Profile;
 }
 
@@ -22,6 +25,9 @@ export function seedConversationCaches(
     listing_id: result.listing_id,
     listing_title: result.listing_title,
     listing_image_url: result.listing_image_url,
+    booking_id: result.booking_id,
+    vehicle_title: result.vehicle_title,
+    vehicle_image_url: result.vehicle_image_url,
     other_user: result.other_user,
     last_message: null,
     last_message_at: null,
@@ -37,7 +43,7 @@ export function seedConversationCaches(
 
   queryClient.setQueryData(['conversation-meta', result.id], {
     otherUser: result.other_user,
-    listingTitle: result.listing_title,
+    listingTitle: result.vehicle_title ?? result.listing_title,
   });
 
   syncUnreadTotalFromConversations(queryClient);

@@ -1,3 +1,4 @@
+import { getVehiclePhotoSource } from '@/src/features/rentals/api/vehicles';
 import { supabase } from '@/src/lib/supabase';
 import type { PreferredLang } from '@/src/lib/database.types';
 import type { ConversationPreview, Profile } from '../types';
@@ -10,6 +11,9 @@ type ConversationPreviewRow = {
   listing_id: string | null;
   listing_title: string | null;
   listing_image_url: string | null;
+  booking_id: string | null;
+  vehicle_title: string | null;
+  vehicle_image_path: string | null;
   other_user_id: string;
   other_user_display_name: string;
   other_user_avatar_url: string | null;
@@ -19,13 +23,27 @@ type ConversationPreviewRow = {
   unread_count: number;
 };
 
-type RpcConversationResult = {
+type RpcListingConversationResult = {
   id: string;
   listing_id: string;
   listing_title: string | null;
   listing_image_url: string | null;
   other_user: Profile;
 };
+
+type RpcBookingConversationResult = {
+  id: string;
+  booking_id: string;
+  vehicle_title: string | null;
+  vehicle_image_path: string | null;
+  other_user: Profile;
+};
+
+function resolveVehicleImageUrl(path: string | null): string | null {
+  if (!path) return null;
+  const source = getVehiclePhotoSource(path);
+  return typeof source === 'object' && 'uri' in source ? source.uri : null;
+}
 
 function mapPreviewRow(row: ConversationPreviewRow): ConversationPreview {
   const otherUser: Profile = {
@@ -40,6 +58,9 @@ function mapPreviewRow(row: ConversationPreviewRow): ConversationPreview {
     listing_id: row.listing_id,
     listing_title: row.listing_title,
     listing_image_url: row.listing_image_url,
+    booking_id: row.booking_id,
+    vehicle_title: row.vehicle_title,
+    vehicle_image_url: resolveVehicleImageUrl(row.vehicle_image_path),
     other_user: otherUser,
     last_message: row.last_message,
     last_message_at: row.last_message_at,
@@ -47,12 +68,28 @@ function mapPreviewRow(row: ConversationPreviewRow): ConversationPreview {
   };
 }
 
-function mapRpcResult(data: RpcConversationResult): CreateConversationResult {
+function mapListingRpcResult(data: RpcListingConversationResult): CreateConversationResult {
   return {
     id: data.id,
     listing_id: data.listing_id,
     listing_title: data.listing_title,
     listing_image_url: data.listing_image_url,
+    booking_id: null,
+    vehicle_title: null,
+    vehicle_image_url: null,
+    other_user: data.other_user,
+  };
+}
+
+function mapBookingRpcResult(data: RpcBookingConversationResult): CreateConversationResult {
+  return {
+    id: data.id,
+    listing_id: null,
+    listing_title: null,
+    listing_image_url: null,
+    booking_id: data.booking_id,
+    vehicle_title: data.vehicle_title,
+    vehicle_image_url: resolveVehicleImageUrl(data.vehicle_image_path),
     other_user: data.other_user,
   };
 }
@@ -99,7 +136,20 @@ export async function getOrCreateConversation(
   if (error) throw error;
   if (!data) throw new Error('Could not start chat');
 
-  return mapRpcResult(data as RpcConversationResult);
+  return mapListingRpcResult(data as RpcListingConversationResult);
+}
+
+export async function getOrCreateBookingConversation(
+  bookingId: string
+): Promise<CreateConversationResult> {
+  const { data, error } = await supabase.rpc('get_or_create_booking_conversation', {
+    p_booking_id: bookingId,
+  });
+
+  if (error) throw error;
+  if (!data) throw new Error('Could not start chat');
+
+  return mapBookingRpcResult(data as RpcBookingConversationResult);
 }
 
 export async function fetchUnreadTotal(userId: string): Promise<number> {

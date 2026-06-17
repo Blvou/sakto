@@ -8,6 +8,9 @@ export interface ConversationPreview {
   listing_id: string | null;
   listing_title: string | null;
   listing_image_url: string | null;
+  booking_id: string | null;
+  vehicle_title: string | null;
+  vehicle_image_url: string | null;
   other_user: Profile;
   last_message: string | null;
   last_message_at: string | null;
