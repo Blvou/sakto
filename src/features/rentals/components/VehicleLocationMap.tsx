@@ -1,15 +1,14 @@
 import { MapPin } from 'lucide-react-native';
-import type { ComponentType } from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 import type { MapCoordinates } from '@/src/lib/maps';
 import { useTheme } from '@/src/hooks/use-theme';
 
-interface VehicleLocationMapProps {
+export interface VehicleLocationMapProps {
   coordinates: MapCoordinates;
   isDark?: boolean;
 }
 
-function WebMapPlaceholder({ isDark: isDarkProp }: VehicleLocationMapProps) {
+export function VehicleLocationMap({ isDark: isDarkProp }: VehicleLocationMapProps) {
   const { colors, isDark: themeIsDark } = useTheme();
   const isDark = isDarkProp ?? themeIsDark;
 
@@ -65,46 +64,3 @@ function WebMapPlaceholder({ isDark: isDarkProp }: VehicleLocationMapProps) {
     </View>
   );
 }
-
-function NativeMapView({ coordinates, isDark }: VehicleLocationMapProps) {
-  const maps = require('react-native-maps') as {
-    default: ComponentType<Record<string, unknown>>;
-    Marker: ComponentType<{ coordinate: MapCoordinates }>;
-  };
-  const MapView = maps.default;
-  const Marker = maps.Marker;
-
-  return (
-    <View style={styles.container}>
-      <MapView
-        style={StyleSheet.absoluteFill}
-        initialRegion={{
-          ...coordinates,
-          latitudeDelta: 0.02,
-          longitudeDelta: 0.02,
-        }}
-        scrollEnabled={false}
-        zoomEnabled={false}
-        rotateEnabled={false}
-        pitchEnabled={false}
-        userInterfaceStyle={isDark ? 'dark' : 'light'}
-      >
-        <Marker coordinate={coordinates} />
-      </MapView>
-    </View>
-  );
-}
-
-export function VehicleLocationMap(props: VehicleLocationMapProps) {
-  if (Platform.OS === 'web') {
-    return <WebMapPlaceholder {...props} />;
-  }
-
-  return <NativeMapView {...props} />;
-}
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-});
