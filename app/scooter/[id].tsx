@@ -9,6 +9,7 @@ import { typography } from '@/src/design-system/tokens';
 import { useAuth } from '@/src/features/auth/hooks/use-auth';
 import { scooters, formatPrice } from '@/src/features/home/data/mock-data';
 import { getVehiclePhotoSource } from '@/src/features/rentals/api/vehicles';
+import { VehicleLocationMap } from '@/src/features/rentals/components/VehicleLocationMap';
 import { useCreateBooking } from '@/src/features/rentals/hooks/use-bookings';
 import { useVehicleBlockedDates } from '@/src/features/rentals/hooks/use-vehicle-blocked-dates';
 import { useVehicle } from '@/src/features/rentals/hooks/use-vehicles';
@@ -22,13 +23,8 @@ import {
   toDateOnly,
 } from '@/src/features/rentals/utils/date-availability';
 import { useTheme } from '@/src/hooks/use-theme';
+import { openMapsNavigation, resolveVehicleCoordinates } from '@/src/lib/maps';
 import { isSupabaseConfigured } from '@/src/lib/supabase';
-
-const MAP_PINS = [
-  { id: '1', top: 72, left: 90 },
-  { id: '2', top: 108, left: 198 },
-  { id: '3', top: 144, left: 126 },
-];
 
 const DATE_HORIZON_DAYS = 30;
 
@@ -89,6 +85,22 @@ export default function ScooterDetailScreen() {
   const isOwnVehicle = !!userId && detail.ownerId === userId;
   const canBook =
     !isMock && !!vehicle && !isOwnVehicle && !createBooking.isPending && !isSelectedRangeBlocked;
+  const mapCoordinates = useMemo(
+    () =>
+      resolveVehicleCoordinates(
+        vehicle
+          ? { lat: vehicle.lat, lng: vehicle.lng, location: vehicle.location, city: vehicle.city }
+          : { location: detail.location }
+      ),
+    [detail.location, vehicle]
+  );
+
+  const handleNavigate = async () => {
+    const opened = await openMapsNavigation(mapCoordinates, detail.title);
+    if (!opened) {
+      toast.error('Could not open maps on this device');
+    }
+  };
 
   const handleSelectStartDate = (date: string) => {
     if (isDateBlocked(date, blockedDates)) {
@@ -178,60 +190,7 @@ export default function ScooterDetailScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <View style={{ height: 240, position: 'relative' }}>
-        <View
-          style={{
-            flex: 1,
-            backgroundColor: isDark ? '#1E2A3D' : '#D4E4F7',
-            overflow: 'hidden',
-          }}
-        >
-          <View
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              opacity: 0.3,
-            }}
-          >
-            {Array.from({ length: 8 }).map((_, row) => (
-              <View key={row} style={{ flexDirection: 'row', flex: 1 }}>
-                {Array.from({ length: 6 }).map((__, col) => (
-                  <View
-                    key={col}
-                    style={{
-                      flex: 1,
-                      borderWidth: 0.5,
-                      borderColor: isDark ? '#2A3A50' : '#B8CCE0',
-                    }}
-                  />
-                ))}
-              </View>
-            ))}
-          </View>
-
-          {MAP_PINS.map((pin) => (
-            <View
-              key={pin.id}
-              style={{
-                position: 'absolute',
-                top: pin.top,
-                left: pin.left,
-                width: 32,
-                height: 32,
-                borderRadius: 16,
-                backgroundColor: colors.secondary,
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderWidth: 3,
-                borderColor: '#FFF',
-              }}
-            >
-              <Text style={{ fontSize: 14 }}>B</Text>
-            </View>
-          ))}
-        </View>
+        <VehicleLocationMap coordinates={mapCoordinates} isDark={isDark} />
 
         <Pressable
           onPress={() => router.back()}
@@ -251,6 +210,7 @@ export default function ScooterDetailScreen() {
         </Pressable>
 
         <Pressable
+          onPress={handleNavigate}
           style={{
             position: 'absolute',
             bottom: 16,

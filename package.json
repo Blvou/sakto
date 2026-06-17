@@ -33,6 +33,7 @@
     "react-hook-form": "^7.79.0",
     "react-native": "0.85.3",
     "react-native-gesture-handler": "^3.0.1",
+    "react-native-maps": "^1.22.0",
     "react-native-reanimated": "4.3.1",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "4.25.2",
@@ -61,6 +62,7 @@
     "audit:rental:static": "node .cursor/skills/audit-rental-security/scripts/run-audit.mjs static",
     "audit:rental:live": "node .cursor/skills/audit-rental-security/scripts/run-audit.mjs live",
     "seed:chat-users": "node scripts/seed-chat-test-users.mjs",
+    "seed:rental-vehicles": "node scripts/seed-rental-vehicles.mjs",
     "test:chat": "node scripts/test-chat-flow.mjs"
   },
   "private": true

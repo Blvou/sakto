@@ -92,6 +92,8 @@ $$;
 
 grant execute on function public.get_or_create_booking_conversation(uuid) to authenticated;
 
+drop function if exists public.get_conversation_previews(uuid, int, timestamptz);
+
 create or replace function public.get_conversation_previews(
   p_user_id uuid,
   p_limit int default 50,
