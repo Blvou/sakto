@@ -1,0 +1,50 @@
+/**
+ * Design tokens for web/CSS handoff
+ * Import in web projects: @import './css-tokens.css';
+ */
+
+:root {
+  --color-primary: #0066FF;
+  --color-secondary: #FF6B00;
+  --color-success: #00C853;
+  --color-warning: #FFB800;
+  --color-background: #F7F9FC;
+  --color-surface: #FFFFFF;
+  --color-text-primary: #0A1F44;
+  --color-text-secondary: #6B7A99;
+  --color-border: #DDE3ED;
+
+  --font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+  --font-size-h1: 24px;
+  --font-size-h2: 20px;
+  --font-size-h3: 16px;
+  --font-size-body: 14px;
+  --font-size-caption: 12px;
+  --font-size-price: 18px;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+
+  --shadow-card: 0 2px 8px rgba(10, 31, 68, 0.08);
+  --shadow-fab: 0 4px 12px rgba(255, 107, 0, 0.3);
+
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --touch-target: 44px;
+}
+
+[data-theme='dark'] {
+  --color-primary: #3D8BFF;
+  --color-secondary: #FF8533;
+  --color-success: #33D47A;
+  --color-warning: #FFCA33;
+  --color-background: #0D1526;
+  --color-surface: #1A2332;
+  --color-text-primary: #F0F4FF;
+  --color-text-secondary: #8B9BB8;
+  --color-border: #2A3548;
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.3);
+}

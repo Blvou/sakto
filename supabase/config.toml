@@ -1,0 +1,5 @@
+# Supabase local development config
+# See https://supabase.com/docs/guides/cli
+
+[functions.translate]
+verify_jwt = true

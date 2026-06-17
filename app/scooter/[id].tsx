@@ -1,0 +1,396 @@
+import { useMemo, useState } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
+import { Image } from 'expo-image';
+import { ArrowLeft, Calendar, MapPin, Navigation, Star } from 'lucide-react-native';
+import { toast } from 'sonner-native';
+import { Badge } from '@/src/design-system/components/Badge';
+import { typography } from '@/src/design-system/tokens';
+import { useAuth } from '@/src/features/auth/hooks/use-auth';
+import { scooters, formatPrice } from '@/src/features/home/data/mock-data';
+import { getVehiclePhotoSource } from '@/src/features/rentals/api/vehicles';
+import { useCreateBooking } from '@/src/features/rentals/hooks/use-bookings';
+import { useVehicle } from '@/src/features/rentals/hooks/use-vehicles';
+import { createBookingSchema } from '@/src/features/rentals/schemas';
+import { useTheme } from '@/src/hooks/use-theme';
+import { isSupabaseConfigured } from '@/src/lib/supabase';
+
+const MAP_PINS = [
+  { id: '1', top: 72, left: 90 },
+  { id: '2', top: 108, left: 198 },
+  { id: '3', top: 144, left: 126 },
+];
+
+function addDays(date: Date, days: number): Date {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+function toDateOnly(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
+export default function ScooterDetailScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const { colors, isDark } = useTheme();
+  const router = useRouter();
+  const { userId } = useAuth();
+  const [selectedDays, setSelectedDays] = useState(1);
+  const createBooking = useCreateBooking();
+  const vehicleQuery = useVehicle(id);
+
+  const mockScooter = scooters.find((s) => s.id === id) ?? scooters[0];
+  const vehicle = vehicleQuery.data;
+  const isMock = !isSupabaseConfigured || id.startsWith('s');
+
+  const detail = useMemo(() => {
+    if (vehicle) {
+      return {
+        title: vehicle.title,
+        model: `${vehicle.brand} ${vehicle.model}`,
+        pricePerDay: Number(vehicle.price_per_day),
+        rating: null,
+        reviewCount: 0,
+        location: vehicle.location,
+        instant: vehicle.instant_booking,
+        image: getVehiclePhotoSource(vehicle.photos[0]?.storage_path),
+        ownerId: vehicle.owner_id,
+        description: vehicle.description,
+      };
+    }
+
+    return {
+      title: mockScooter.model,
+      model: mockScooter.model,
+      pricePerDay: mockScooter.pricePerDay,
+      rating: mockScooter.rating,
+      reviewCount: mockScooter.reviewCount,
+      location: `${mockScooter.distanceKm} km away - Ermita, Manila`,
+      instant: mockScooter.instant,
+      image: mockScooter.image,
+      ownerId: null,
+      description: 'A clean, city-friendly scooter for short daily rentals.',
+    };
+  }, [mockScooter, vehicle]);
+
+  const serviceFee = 50;
+  const total = detail.pricePerDay * selectedDays;
+  const startDate = toDateOnly(new Date());
+  const endDate = toDateOnly(addDays(new Date(), selectedDays - 1));
+  const isOwnVehicle = !!userId && detail.ownerId === userId;
+  const canBook = !isMock && !!vehicle && !isOwnVehicle && !createBooking.isPending;
+
+  const handleBook = () => {
+    if (isMock) {
+      toast.error('Connect Supabase and publish a real bike to request booking');
+      return;
+    }
+
+    if (isOwnVehicle) {
+      toast.error('You cannot book your own bike');
+      return;
+    }
+
+    const parsed = createBookingSchema.safeParse({
+      vehicleId: id,
+      startDate,
+      days: selectedDays,
+    });
+
+    if (!parsed.success) {
+      toast.error(parsed.error.issues[0]?.message ?? 'Check booking dates');
+      return;
+    }
+
+    createBooking.mutate(parsed.data, {
+      onSuccess: () => {
+        router.push('/bookings');
+      },
+    });
+  };
+
+  if (vehicleQuery.isLoading && !isMock) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator color={colors.primary} />
+      </View>
+    );
+  }
+
+  if (!vehicle && !isMock) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.background, padding: 16, justifyContent: 'center' }}>
+        <Text style={{ ...typography.h2, color: colors.textPrimary, textAlign: 'center' }}>
+          Bike not found
+        </Text>
+        <Pressable
+          onPress={() => router.back()}
+          style={{
+            marginTop: 16,
+            backgroundColor: colors.primary,
+            borderRadius: 12,
+            minHeight: 52,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Text style={{ ...typography.body, color: '#FFF', fontFamily: 'PlusJakartaSans_700Bold' }}>
+            Go back
+          </Text>
+        </Pressable>
+      </View>
+    );
+  }
+
+  return (
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <View style={{ height: 240, position: 'relative' }}>
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: isDark ? '#1E2A3D' : '#D4E4F7',
+            overflow: 'hidden',
+          }}
+        >
+          <View
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              opacity: 0.3,
+            }}
+          >
+            {Array.from({ length: 8 }).map((_, row) => (
+              <View key={row} style={{ flexDirection: 'row', flex: 1 }}>
+                {Array.from({ length: 6 }).map((__, col) => (
+                  <View
+                    key={col}
+                    style={{
+                      flex: 1,
+                      borderWidth: 0.5,
+                      borderColor: isDark ? '#2A3A50' : '#B8CCE0',
+                    }}
+                  />
+                ))}
+              </View>
+            ))}
+          </View>
+
+          {MAP_PINS.map((pin) => (
+            <View
+              key={pin.id}
+              style={{
+                position: 'absolute',
+                top: pin.top,
+                left: pin.left,
+                width: 32,
+                height: 32,
+                borderRadius: 16,
+                backgroundColor: colors.secondary,
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderWidth: 3,
+                borderColor: '#FFF',
+              }}
+            >
+              <Text style={{ fontSize: 14 }}>B</Text>
+            </View>
+          ))}
+        </View>
+
+        <Pressable
+          onPress={() => router.back()}
+          style={{
+            position: 'absolute',
+            top: 56,
+            left: 16,
+            width: 44,
+            height: 44,
+            borderRadius: 22,
+            backgroundColor: colors.surface,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <ArrowLeft color={colors.textPrimary} size={22} />
+        </Pressable>
+
+        <Pressable
+          style={{
+            position: 'absolute',
+            bottom: 16,
+            right: 16,
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: colors.surface,
+            paddingHorizontal: 14,
+            paddingVertical: 10,
+            borderRadius: 20,
+            gap: 6,
+            shadowColor: '#000',
+            shadowOpacity: 0.1,
+            shadowRadius: 8,
+            elevation: 4,
+          }}
+        >
+          <Navigation color={colors.primary} size={16} />
+          <Text style={{ ...typography.caption, fontFamily: 'PlusJakartaSans_600SemiBold', color: colors.primary }}>
+            Navigate
+          </Text>
+        </Pressable>
+      </View>
+
+      <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
+        <View style={{ padding: 16 }}>
+          <View style={{ flexDirection: 'row', gap: 12 }}>
+            <Image
+              source={detail.image}
+              style={{ width: 80, height: 80, borderRadius: 12, backgroundColor: colors.border }}
+              contentFit="cover"
+              cachePolicy={typeof detail.image === 'object' ? 'memory-disk' : undefined}
+            />
+            <View style={{ flex: 1 }}>
+              <Text style={{ ...typography.h2, color: colors.textPrimary }}>{detail.title}</Text>
+              <Text style={{ ...typography.caption, color: colors.textSecondary, marginTop: 2 }}>
+                {detail.model}
+              </Text>
+              <Text style={{ ...typography.price, color: colors.primary, marginTop: 4 }}>
+                {formatPrice(detail.pricePerDay)}
+                <Text style={{ ...typography.caption, color: colors.textSecondary }}>/day</Text>
+              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6, gap: 8 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+                  <Star color="#FFB800" size={14} fill="#FFB800" />
+                  <Text style={{ ...typography.caption, color: colors.textSecondary }}>
+                    {detail.rating?.toFixed(1) ?? 'New'} ({detail.reviewCount})
+                  </Text>
+                </View>
+                {detail.instant && <Badge label="Instant booking" variant="success" />}
+              </View>
+            </View>
+          </View>
+
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 16, gap: 4 }}>
+            <MapPin color={colors.textSecondary} size={14} />
+            <Text style={{ ...typography.body, color: colors.textSecondary }}>{detail.location}</Text>
+          </View>
+
+          <Text style={{ ...typography.body, color: colors.textSecondary, marginTop: 16 }}>
+            {detail.description}
+          </Text>
+
+          <Text style={{ ...typography.h3, color: colors.textPrimary, marginTop: 24 }}>Rental period</Text>
+          <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
+            {[1, 3, 7, 14].map((days) => (
+              <Pressable
+                key={days}
+                onPress={() => setSelectedDays(days)}
+                style={{
+                  flex: 1,
+                  paddingVertical: 12,
+                  borderRadius: 12,
+                  alignItems: 'center',
+                  backgroundColor: selectedDays === days ? colors.primary : colors.surface,
+                  borderWidth: 1,
+                  borderColor: selectedDays === days ? colors.primary : colors.border,
+                  minHeight: 44,
+                  justifyContent: 'center',
+                }}
+              >
+                <Text
+                  style={{
+                    ...typography.body,
+                    fontFamily: 'PlusJakartaSans_600SemiBold',
+                    color: selectedDays === days ? '#FFF' : colors.textPrimary,
+                  }}
+                >
+                  {days}d
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+
+          <View
+            style={{
+              marginTop: 20,
+              padding: 16,
+              backgroundColor: colors.surface,
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: colors.border,
+            }}
+          >
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+              <Text style={{ ...typography.body, color: colors.textSecondary }}>
+                {formatPrice(detail.pricePerDay)} x {selectedDays} days
+              </Text>
+              <Text style={{ ...typography.body, color: colors.textPrimary }}>
+                {formatPrice(total)}
+              </Text>
+            </View>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 }}>
+              <Text style={{ ...typography.body, color: colors.textSecondary }}>Service fee</Text>
+              <Text style={{ ...typography.body, color: colors.textPrimary }}>{formatPrice(serviceFee)}</Text>
+            </View>
+            <View
+              style={{
+                height: 1,
+                backgroundColor: colors.border,
+                marginVertical: 12,
+              }}
+            />
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+              <Text style={{ ...typography.h3, color: colors.textPrimary }}>Total</Text>
+              <Text style={{ ...typography.price, color: colors.primary }}>{formatPrice(total + serviceFee)}</Text>
+            </View>
+          </View>
+
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 16, gap: 8 }}>
+            <Calendar color={colors.warning} size={18} />
+            <Text style={{ ...typography.caption, color: colors.textSecondary }}>
+              Request dates: {startDate} to {endDate}. No online payment in MVP.
+            </Text>
+          </View>
+        </View>
+      </ScrollView>
+
+      <View
+        style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          padding: 16,
+          paddingBottom: 32,
+          backgroundColor: colors.surface,
+          borderTopWidth: 1,
+          borderTopColor: colors.border,
+        }}
+      >
+        <Pressable
+          onPress={handleBook}
+          disabled={!canBook}
+          style={{
+            backgroundColor: colors.secondary,
+            borderRadius: 12,
+            minHeight: 52,
+            alignItems: 'center',
+            justifyContent: 'center',
+            opacity: canBook ? 1 : 0.65,
+          }}
+        >
+          {createBooking.isPending ? (
+            <ActivityIndicator color="#FFF" />
+          ) : (
+            <Text style={{ ...typography.body, color: '#FFF', fontFamily: 'PlusJakartaSans_700Bold' }}>
+              {isOwnVehicle ? 'Your bike' : `Request booking - ${formatPrice(total + serviceFee)}`}
+            </Text>
+          )}
+        </Pressable>
+      </View>
+    </View>
+  );
+}
