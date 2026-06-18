@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import {
   View,
@@ -11,21 +11,27 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Image } from 'expo-image';
-import { ArrowLeft, Camera, ChevronRight, MapPin, X } from 'lucide-react-native';
+import { ArrowLeft, Camera, MapPin, X } from 'lucide-react-native';
 import { useTheme } from '@/src/hooks/use-theme';
 import { typography } from '@/src/design-system/tokens';
 import { toast } from 'sonner-native';
+import { ImageCropModal } from '@/src/features/media/components/ImageCropModal';
+import { LocationPickerMap } from '@/src/features/rentals/components/LocationPickerMap';
 import { createVehicleMutationSchema } from '@/src/features/rentals/schemas';
 import { useCreateVehicle } from '@/src/features/rentals/hooks/use-create-vehicle';
 import { usePickVehiclePhotos } from '@/src/features/rentals/hooks/use-pick-vehicle-photos';
+import { useRequireAuth } from '@/src/hooks/use-require-auth';
+import { MANILA_DEFAULT_COORDS, type MapCoordinates } from '@/src/lib/maps';
 
 const STEPS = ['Photos', 'Details', 'Price', 'Location'] as const;
 
 export default function PublishScreen() {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const router = useRouter();
+  const requireAuth = useRequireAuth();
   const createVehicle = useCreateVehicle();
-  const { photos, pickPhotos, removePhoto, movePhotoToCover, maxPhotos } = usePickVehiclePhotos();
+  const { photos, pickPhotos, removePhoto, movePhotoToCover, maxPhotos, pendingCrop, confirmCrop, cancelCrop } =
+    usePickVehiclePhotos();
 
   const [step, setStep] = useState(0);
   const [title, setTitle] = useState('');
@@ -34,7 +40,16 @@ export default function PublishScreen() {
   const [price, setPrice] = useState('');
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('Manila, Metro Manila');
+  const [pickupCoords, setPickupCoords] = useState<MapCoordinates>(MANILA_DEFAULT_COORDS);
   const [instantBooking] = useState(false);
+
+  useEffect(() => {
+    requireAuth({ message: 'Sign in to list your bike', returnTo: '/publish?type=scooter' });
+  }, [requireAuth]);
+
+  const handleCoordinatesChange = useCallback((coords: MapCoordinates) => {
+    setPickupCoords(coords);
+  }, []);
 
   const progress = ((step + 1) / STEPS.length) * 100;
 
@@ -56,6 +71,8 @@ export default function PublishScreen() {
       pricePerDay: price,
       location,
       city: location.split(',')[0]?.trim() ?? '',
+      lat: pickupCoords.latitude,
+      lng: pickupCoords.longitude,
       instantBooking,
       photoUris: photos.map((photo) => photo.uri),
     });
@@ -363,6 +380,14 @@ export default function PublishScreen() {
 
         {step === 3 && (
           <View>
+            <LocationPickerMap
+              coordinates={pickupCoords}
+              onCoordinatesChange={handleCoordinatesChange}
+              isDark={isDark}
+            />
+            <Text style={{ ...typography.caption, color: colors.textSecondary, marginTop: 8, marginBottom: 12 }}>
+              Tap the map or drag the pin to set the pickup area.
+            </Text>
             <View
               style={{
                 flexDirection: 'row',
@@ -389,7 +414,6 @@ export default function PublishScreen() {
                   marginLeft: 12,
                 }}
               />
-              <ChevronRight color={colors.textSecondary} size={18} />
             </View>
             <Text style={{ ...typography.caption, color: colors.textSecondary }}>
               Your exact address is only shared after booking confirmation.
@@ -432,6 +456,15 @@ export default function PublishScreen() {
           )}
         </Pressable>
       </View>
+      <ImageCropModal
+        visible={pendingCrop !== null}
+        imageUri={pendingCrop?.uri ?? ''}
+        imageWidth={pendingCrop?.width}
+        imageHeight={pendingCrop?.height}
+        aspectRatio={{ width: 4, height: 3 }}
+        onConfirm={confirmCrop}
+        onCancel={cancelCrop}
+      />
     </KeyboardAvoidingView>
   );
 }

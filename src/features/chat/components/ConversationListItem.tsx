@@ -32,8 +32,8 @@ export const ConversationListItem = memo(function ConversationListItem({
   const { other_user, listing_title, vehicle_title, last_message, last_message_at, unread_count } =
     conversation;
   const contextTitle = vehicle_title ?? listing_title;
-  const subtitle = vehicle_title
-    ? `Rental: ${vehicle_title}: ${last_message ?? 'No messages yet'}`
+  const rentalContext = vehicle_title
+    ? `${vehicle_title}${last_message ? ` · ${last_message}` : ''}`
     : contextTitle
       ? `${contextTitle}: ${last_message ?? 'No messages yet'}`
       : last_message ?? 'No messages yet';
@@ -65,7 +65,7 @@ export const ConversationListItem = memo(function ConversationListItem({
           style={{ ...chatTypography.caption, color: colors.textSecondary, marginTop: 2 }}
           numberOfLines={1}
         >
-          {subtitle}
+          {rentalContext}
         </Text>
       </View>
       {unread_count > 0 && (

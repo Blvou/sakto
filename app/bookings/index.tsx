@@ -1,14 +1,17 @@
 import { useCallback } from 'react';
-import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import { View } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useRouter } from 'expo-router';
-import { ArrowLeft } from 'lucide-react-native';
 import { useStartBookingConversation } from '@/src/features/chat/hooks/use-start-booking-conversation';
 import { BookingListItem } from '@/src/features/rentals/components/BookingListItem';
 import { useRenterBookings, useUpdateBookingStatus } from '@/src/features/rentals/hooks/use-bookings';
 import type { BookingItem } from '@/src/features/rentals/types';
-import { typography } from '@/src/design-system/tokens';
+import { EmptyState } from '@/src/design-system/components/EmptyState';
+import { ErrorState } from '@/src/design-system/components/ErrorState';
+import { ListSkeleton } from '@/src/design-system/components/ListSkeleton';
+import { ScreenHeader } from '@/src/design-system/components/ScreenHeader';
 import { useTheme } from '@/src/hooks/use-theme';
+import { Calendar } from 'lucide-react-native';
 
 export default function MyBookingsScreen() {
   const { colors } = useTheme();
@@ -22,60 +25,40 @@ export default function MyBookingsScreen() {
       <BookingListItem
         booking={item}
         role="renter"
+        onPress={(bookingId) => router.push(`/bookings/${bookingId}` as import('expo-router').Href)}
         isUpdating={updateStatus.isPending}
         isMessaging={startBookingChat.isPending}
         onCancel={(bookingId) => updateStatus.mutate({ bookingId, status: 'cancelled' })}
         onMessage={(bookingId) => startBookingChat.mutate(bookingId)}
       />
     ),
-    [startBookingChat, updateStatus]
+    [router, startBookingChat, updateStatus]
   );
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <View style={{ paddingTop: 56, paddingHorizontal: 16, paddingBottom: 12 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-          <Pressable
-            onPress={() => router.back()}
-            style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center', marginLeft: -8 }}
-          >
-            <ArrowLeft color={colors.textPrimary} size={24} />
-          </Pressable>
-          <Text style={{ ...typography.h1, color: colors.textPrimary, flex: 1 }}>My bookings</Text>
-        </View>
-        <Text style={{ ...typography.body, color: colors.textSecondary }}>
-          Requests you sent for bike rentals.
-        </Text>
-      </View>
+      <ScreenHeader title="My bookings" onBack={() => router.back()} />
 
       {isLoading ? (
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <ActivityIndicator color={colors.primary} />
+        <View style={{ padding: 16 }}>
+          <ListSkeleton count={4} itemHeight={120} />
         </View>
       ) : isError ? (
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-          <Text style={{ ...typography.body, color: colors.textSecondary, textAlign: 'center' }}>
-            Could not load bookings.
-          </Text>
-          <Pressable onPress={() => refetch()} style={{ marginTop: 12 }}>
-            <Text style={{ ...typography.body, color: colors.primary, fontFamily: 'PlusJakartaSans_700Bold' }}>
-              Retry
-            </Text>
-          </Pressable>
-        </View>
+        <ErrorState title="Could not load bookings" onRetry={() => refetch()} />
       ) : (
         <FlashList
           data={bookings}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
-          contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
+          contentContainerStyle={{ padding: 16, paddingBottom: 32, flexGrow: bookings.length === 0 ? 1 : 0 }}
           ListEmptyComponent={
-            <View style={{ paddingTop: 64, alignItems: 'center' }}>
-              <Text style={{ ...typography.h3, color: colors.textPrimary }}>No bookings yet</Text>
-              <Text style={{ ...typography.body, color: colors.textSecondary, marginTop: 6, textAlign: 'center' }}>
-                Open a bike and send a rental request to see it here.
-              </Text>
-            </View>
+            <EmptyState
+              icon={Calendar}
+              title="No bookings yet"
+              description="Open a bike and send a rental request to see it here."
+              actionLabel="Find bikes"
+              onAction={() => router.push('/(tabs)/search')}
+            />
           }
         />
       )}

@@ -1,7 +1,10 @@
 import { Pressable, Text, View, type PressableProps } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { Plus } from 'lucide-react-native';
 import { useTheme } from '@/src/hooks/use-theme';
 import { useResponsive } from '@/src/hooks/use-responsive';
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 interface FabProps extends PressableProps {
   onPress: () => void;
@@ -10,11 +13,22 @@ interface FabProps extends PressableProps {
 export function Fab({ onPress, style, ...props }: FabProps) {
   const { colors } = useTheme();
   const { fabBottom } = useResponsive();
+  const scale = useSharedValue(1);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
 
   return (
-    <Pressable
+    <AnimatedPressable
       onPress={onPress}
-      style={(state) => [
+      onPressIn={() => {
+        scale.value = withSpring(0.92, { damping: 15, stiffness: 300 });
+      }}
+      onPressOut={() => {
+        scale.value = withSpring(1, { damping: 15, stiffness: 300 });
+      }}
+      style={[
         {
           position: 'absolute',
           right: 16,
@@ -30,17 +44,17 @@ export function Fab({ onPress, style, ...props }: FabProps) {
           shadowOpacity: 0.3,
           shadowRadius: 12,
           elevation: 8,
-          opacity: state.pressed ? 0.9 : 1,
           zIndex: 10,
         },
-        typeof style === 'function' ? style(state) : style,
+        animatedStyle,
+        typeof style === 'function' ? undefined : style,
       ]}
       accessibilityRole="button"
       accessibilityLabel="List a bike"
       {...props}
     >
       <Plus color="#FFFFFF" size={24} strokeWidth={2} />
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 

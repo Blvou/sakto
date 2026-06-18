@@ -24,6 +24,8 @@ export interface PromoBanner {
   subtitle: string;
   backgroundColor: string;
   textColor: string;
+  href?: string;
+  category?: string;
 }
 
 export const categories: Category[] = [
@@ -42,6 +44,7 @@ export const promoBanners: PromoBanner[] = [
     subtitle: 'First ride free this week',
     backgroundColor: '#0066FF',
     textColor: '#FFFFFF',
+    href: '/rentals/map',
   },
   {
     id: '2',
@@ -49,13 +52,15 @@ export const promoBanners: PromoBanner[] = [
     subtitle: 'Earn ₱300–500/day renting out',
     backgroundColor: '#FF6B00',
     textColor: '#FFFFFF',
+    href: '/publish?type=scooter',
   },
   {
     id: '3',
-    title: 'Verified hosts',
-    subtitle: 'Rent with confidence',
+    title: 'Electric bikes',
+    subtitle: 'Browse eco-friendly rides',
     backgroundColor: '#00C853',
     textColor: '#FFFFFF',
+    category: 'electric',
   },
 ];
 

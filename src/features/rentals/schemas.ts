@@ -9,6 +9,8 @@ export const createVehicleSchema = z.object({
   pricePerDay: z.coerce.number().positive('Price per day must be greater than 0'),
   location: z.string().min(2, 'Location is required').max(120),
   city: z.string().min(2).max(80).optional().or(z.literal('')),
+  lat: z.number().min(-90).max(90),
+  lng: z.number().min(-180).max(180),
   instantBooking: z.boolean().default(false),
   photoPaths: z.array(z.string().min(1)).min(1, 'Add at least one photo').max(10),
 });

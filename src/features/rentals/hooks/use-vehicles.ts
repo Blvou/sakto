@@ -1,50 +1,70 @@
 import { useMemo } from 'react';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { shouldUseCatalogMock } from '@/src/lib/catalog';
+import type { MapCoordinates } from '@/src/lib/maps';
 import { isSupabaseConfigured } from '@/src/lib/supabase';
 import { fetchVehicleById, fetchVehiclesPage, mockVehicleCards } from '../api/vehicles';
 import type { VehicleSearchParams, VehiclesPage, VehiclesPageCursor } from '../types';
 import { rentalQueryKeys } from '../types';
+import {
+  DEFAULT_VEHICLE_FILTER,
+  filterLabelToId,
+  sortVehiclesByFilter,
+  type VehicleFilterOption,
+} from '../utils/vehicle-filters';
 
 const MOCK_PAGE: VehiclesPage = {
   items: mockVehicleCards(),
   nextCursor: undefined,
 };
 
-function mockInitialData() {
+function mockInitialData(userCoords?: MapCoordinates | null) {
   return {
-    pages: [MOCK_PAGE],
+    pages: [{ items: mockVehicleCards(userCoords), nextCursor: undefined }],
     pageParams: [undefined] as (VehiclesPageCursor | undefined)[],
   };
 }
 
-export function useInfiniteVehicles(params?: VehicleSearchParams) {
+interface UseVehiclesOptions {
+  userCoords?: MapCoordinates | null;
+  filter?: VehicleFilterOption;
+}
+
+export function useInfiniteVehicles(params?: VehicleSearchParams, options?: UseVehiclesOptions) {
   const useMock = shouldUseCatalogMock();
+  const userCoords = options?.userCoords ?? null;
+  const filter = options?.filter ?? DEFAULT_VEHICLE_FILTER;
 
   return useInfiniteQuery({
-    queryKey: [...rentalQueryKeys.vehicleList(params), useMock ? 'mock' : 'live'] as const,
+    queryKey: [...rentalQueryKeys.vehicleList(params), useMock ? 'mock' : 'live', filter] as const,
     queryFn: async ({ pageParam }) => {
-      if (useMock) return MOCK_PAGE;
-      try {
-        return await fetchVehiclesPage(params, pageParam);
-      } catch {
-        return MOCK_PAGE;
+      if (useMock) {
+        return {
+          items: sortVehiclesByFilter(mockVehicleCards(userCoords), filter),
+          nextCursor: undefined,
+        };
       }
+      const page = await fetchVehiclesPage(params, pageParam, { userCoords });
+      return {
+        items: sortVehiclesByFilter(page.items, filter),
+        nextCursor: page.nextCursor,
+      };
     },
     initialPageParam: undefined as VehiclesPageCursor | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor,
-    initialData: useMock ? mockInitialData() : undefined,
+    initialData: useMock ? mockInitialData(userCoords) : undefined,
     staleTime: 5 * 60_000,
     retry: useMock ? false : 2,
   });
 }
 
-export function useVehicles(params?: VehicleSearchParams) {
-  const query = useInfiniteVehicles(params);
-  const vehicles = useMemo(
-    () => query.data?.pages.flatMap((page) => page.items) ?? [],
-    [query.data]
-  );
+export function useVehicles(params?: VehicleSearchParams, options?: UseVehiclesOptions) {
+  const query = useInfiniteVehicles(params, options);
+  const filter = options?.filter ?? DEFAULT_VEHICLE_FILTER;
+  const vehicles = useMemo(() => {
+    const flat = query.data?.pages.flatMap((page) => page.items) ?? [];
+    return sortVehiclesByFilter(flat, filter);
+  }, [query.data, filter]);
 
   return {
     ...query,

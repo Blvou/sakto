@@ -1,8 +1,7 @@
 import { memo, useCallback } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
-import { useTheme } from '@/src/hooks/use-theme';
+import { ScrollView, View } from 'react-native';
+import { SectionHeader } from '@/src/design-system/components/SectionHeader';
 import { useResponsive } from '@/src/hooks/use-responsive';
-import { typography } from '@/src/design-system/tokens';
 import { VehicleCard } from '@/src/features/rentals/components/VehicleCard';
 import type { VehicleCardItem } from '@/src/features/rentals/types';
 
@@ -11,6 +10,7 @@ const SCOOTER_GAP = 12;
 interface ScooterSectionProps {
   scooters: VehicleCardItem[];
   onSeeAll?: () => void;
+  onMapPress?: () => void;
   onScooterPress?: (id: string) => void;
   title?: string;
 }
@@ -18,44 +18,23 @@ interface ScooterSectionProps {
 export function ScooterSection({
   scooters,
   onSeeAll,
+  onMapPress,
   onScooterPress,
   title = '🛵 Featured bikes nearby',
 }: ScooterSectionProps) {
-  const { colors } = useTheme();
-  const { scooterCardWidth, horizontalPadding, scale, isSmallScreen } = useResponsive();
+  const { scooterCardWidth, horizontalPadding } = useResponsive();
   const imageHeight = Math.round(scooterCardWidth * (120 / 180));
   const snapInterval = scooterCardWidth + SCOOTER_GAP;
 
   return (
     <View style={{ marginTop: 8, marginBottom: 16 }}>
-      <View
-        style={{
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: 12,
-          gap: 8,
-        }}
-      >
-        <Text
-          style={{
-            ...typography.h3,
-            color: colors.textPrimary,
-            flex: 1,
-            fontSize: isSmallScreen ? scale(14) : undefined,
-          }}
-          numberOfLines={2}
-        >
-          {title}
-        </Text>
-        {onSeeAll ? (
-          <Pressable onPress={onSeeAll} hitSlop={8} style={{ flexShrink: 0 }}>
-            <Text style={{ ...typography.caption, color: colors.primary, fontFamily: 'PlusJakartaSans_600SemiBold' }}>
-              See all →
-            </Text>
-          </Pressable>
-        ) : null}
-      </View>
+      <SectionHeader
+        title={title}
+        secondaryActionLabel={onMapPress ? 'Map' : undefined}
+        onSecondaryActionPress={onMapPress}
+        actionLabel={onSeeAll ? 'See all →' : undefined}
+        onActionPress={onSeeAll}
+      />
 
       <ScrollView
         horizontal

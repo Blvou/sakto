@@ -3,7 +3,9 @@ import { useTheme } from '@/src/hooks/use-theme';
 import { useResponsive } from '@/src/hooks/use-responsive';
 import { typography } from '@/src/design-system/tokens';
 
-const FILTERS = ['Nearby', 'Electric', 'Manual', 'By day'] as const;
+import { VEHICLE_FILTER_OPTIONS } from '@/src/features/rentals/utils/vehicle-filters';
+
+const FILTERS = VEHICLE_FILTER_OPTIONS;
 
 interface VehicleFiltersProps {
   activeFilter?: string;

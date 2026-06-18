@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
-import { useIsFocused } from 'expo-router';
+import { useIsFocused, useRouter, type Href } from 'expo-router';
 import { useTheme } from '@/src/hooks/use-theme';
 import { useResponsive } from '@/src/hooks/use-responsive';
 import { radii } from '@/src/design-system/tokens';
@@ -15,6 +15,7 @@ interface PromoCarouselProps {
 export function PromoCarousel({ banners }: PromoCarouselProps) {
   const { colors } = useTheme();
   const { contentWidth, scale } = useResponsive();
+  const router = useRouter();
   const bannerWidth = contentWidth;
   const bannerHeight = scale(140);
   const scrollRef = useRef<ScrollView>(null);
@@ -52,6 +53,18 @@ export function PromoCarousel({ banners }: PromoCarouselProps) {
         {banners.map((banner) => (
           <Pressable
             key={banner.id}
+            onPress={() => {
+              if (banner.href) {
+                router.push(banner.href as Href);
+                return;
+              }
+              if (banner.category) {
+                router.push({
+                  pathname: '/(tabs)/search',
+                  params: { category: banner.category },
+                });
+              }
+            }}
             style={{
               width: bannerWidth,
               height: bannerHeight,

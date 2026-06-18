@@ -1,9 +1,13 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Pressable, RefreshControl, View } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
+import { Bike } from 'lucide-react-native';
 import { useTheme } from '@/src/hooks/use-theme';
 import { useResponsive } from '@/src/hooks/use-responsive';
+import { EmptyState } from '@/src/design-system/components/EmptyState';
+import { ErrorState } from '@/src/design-system/components/ErrorState';
+import { GridSkeleton } from '@/src/design-system/components/ListSkeleton';
 import { Fab } from '@/src/design-system/components/Fab';
 import { Skeleton } from '@/src/design-system/components/Skeleton';
 import { HomeHeader } from '@/src/features/home/components/HomeHeader';
@@ -15,6 +19,15 @@ import { VehicleFilters } from '@/src/features/home/components/VehicleFilters';
 import type { Category } from '@/src/features/home/data/mock-data';
 import { categories, promoBanners } from '@/src/features/home/data/mock-data';
 import { useVehicles } from '@/src/features/rentals/hooks/use-vehicles';
+import { useUserLocation } from '@/src/features/rentals/hooks/use-user-location';
+import {
+  buildVehicleSearchParams,
+  DEFAULT_VEHICLE_FILTER,
+  filterLabelToId,
+  type VehicleFilterOption,
+} from '@/src/features/rentals/utils/vehicle-filters';
+import { useRequireAuth } from '@/src/hooks/use-require-auth';
+import { useNotificationsStore } from '@/src/stores/notifications-store';
 import type { VehicleCardItem } from '@/src/features/rentals/types';
 
 function ScooterRowSkeleton({ cardWidth, imageHeight }: { cardWidth: number; imageHeight: number }) {
@@ -26,46 +39,34 @@ function ScooterRowSkeleton({ cardWidth, imageHeight }: { cardWidth: number; ima
   );
 }
 
-function VehicleGridSkeleton({
-  cardWidth,
-  scale,
-}: {
-  cardWidth: number;
-  scale: (value: number) => number;
-}) {
-  return (
-    <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
-      {Array.from({ length: 4 }).map((_, index) => (
-        <Skeleton
-          key={index}
-          width={cardWidth}
-          height={scale(200)}
-          borderRadius={12}
-          style={{ marginBottom: 16 }}
-        />
-      ))}
-    </View>
-  );
-}
-
 export default function HomeScreen() {
   const { colors } = useTheme();
   const router = useRouter();
+  const requireAuth = useRequireAuth();
+  const notificationCount = useNotificationsStore((s) => s.unreadCount());
   const { cardWidth, horizontalPadding, listBottomPadding, scooterCardWidth, scale } =
     useResponsive();
+
+  const { coords: userCoords } = useUserLocation();
+
+  const [quickFilter, setQuickFilter] = useState<VehicleFilterOption>(DEFAULT_VEHICLE_FILTER);
+  const [activeFilter, setActiveFilter] = useState<VehicleFilterOption>(DEFAULT_VEHICLE_FILTER);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const searchParams = useMemo(
+    () => buildVehicleSearchParams(activeFilter, undefined, userCoords),
+    [activeFilter, userCoords]
+  );
 
   const {
     vehicles,
     isLoading: vehiclesLoading,
+    isError: vehiclesError,
     refetch: refetchVehicles,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useVehicles();
-
-  const [refreshing, setRefreshing] = useState(false);
-  const [quickFilter, setQuickFilter] = useState('Nearby');
-  const [activeFilter, setActiveFilter] = useState('Nearby');
+  } = useVehicles(searchParams, { userCoords, filter: activeFilter });
 
   const featuredVehicles = useMemo(() => vehicles.slice(0, 10), [vehicles]);
   const popularVehicles = useMemo(() => vehicles.slice(2), [vehicles]);
@@ -88,6 +89,10 @@ export default function HomeScreen() {
     router.push('/(tabs)/chat');
   }, [router]);
 
+  const handleNotificationsPress = useCallback(() => {
+    router.push('/notifications' as Href);
+  }, [router]);
+
   const handleCategoryPress = useCallback(
     (cat: Category) => {
       router.push({ pathname: '/(tabs)/search', params: { category: cat.id } });
@@ -101,6 +106,19 @@ export default function HomeScreen() {
     },
     [router]
   );
+
+  const handleListBike = useCallback(() => {
+    if (!requireAuth({ message: 'Sign in to list your bike', returnTo: '/publish?type=scooter' })) {
+      return;
+    }
+    router.push('/publish?type=scooter');
+  }, [requireAuth, router]);
+
+  const handleFilterChange = useCallback((label: string) => {
+    const next = filterLabelToId(label);
+    setActiveFilter(next);
+    setQuickFilter(next);
+  }, []);
 
   const handleEndReached = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage) {
@@ -122,7 +140,7 @@ export default function HomeScreen() {
       <View>
         <PressableSearchBar
           activeFilter={quickFilter}
-          onFilterPress={setQuickFilter}
+          onFilterPress={handleFilterChange}
           onPress={handleSearchFocus}
         />
         <PromoCarousel banners={promoBanners} />
@@ -136,11 +154,15 @@ export default function HomeScreen() {
           <ScooterSection
             scooters={featuredVehicles}
             onSeeAll={() => router.push('/(tabs)/search')}
+            onMapPress={() => router.push('/rentals/map' as Href)}
             onScooterPress={handleVehiclePress}
           />
         ) : null}
-        <VehicleFilters activeFilter={activeFilter} onFilterChange={setActiveFilter} />
-        {showPopularSkeleton ? <VehicleGridSkeleton cardWidth={cardWidth} scale={scale} /> : null}
+        <VehicleFilters activeFilter={activeFilter} onFilterChange={handleFilterChange} />
+        {showPopularSkeleton ? <GridSkeleton cardWidth={cardWidth} rows={2} /> : null}
+        {vehiclesError ? (
+          <ErrorState title="Could not load bikes" onRetry={() => refetchVehicles()} />
+        ) : null}
       </View>
     ),
     [
@@ -149,6 +171,7 @@ export default function HomeScreen() {
       handleCategoryPress,
       handleVehiclePress,
       handleSearchFocus,
+      handleFilterChange,
       featuredVehicles,
       router,
       showFeaturedSkeleton,
@@ -157,24 +180,35 @@ export default function HomeScreen() {
       scooterImageHeight,
       cardWidth,
       scale,
+      vehiclesError,
+      refetchVehicles,
     ]
   );
 
   const listEmptyComponent = useMemo(() => {
-    if (showPopularSkeleton || popularVehicles.length > 0) return null;
+    if (showPopularSkeleton || vehiclesError) return null;
+    if (popularVehicles.length > 0) return null;
     return (
-      <View style={{ paddingVertical: 24, alignItems: 'center' }}>
-        <Skeleton width={cardWidth} height={scale(200)} borderRadius={12} />
-      </View>
+      <EmptyState
+        icon={Bike}
+        title="No bikes nearby"
+        description="Try another filter or list your bike to earn from rentals."
+        actionLabel="Open map"
+        onAction={() => router.push('/rentals/map' as Href)}
+      />
     );
-  }, [showPopularSkeleton, popularVehicles.length, cardWidth, scale]);
+  }, [popularVehicles.length, router, showPopularSkeleton, vehiclesError]);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <HomeHeader onChatPress={handleChatPress} />
+      <HomeHeader
+        notificationCount={notificationCount}
+        onChatPress={handleChatPress}
+        onNotificationsPress={handleNotificationsPress}
+      />
 
       <FlashList
-        data={showPopularSkeleton ? [] : popularVehicles}
+        data={showPopularSkeleton || vehiclesError ? [] : popularVehicles}
         numColumns={2}
         keyExtractor={keyExtractor}
         renderItem={renderItem}
@@ -190,10 +224,7 @@ export default function HomeScreen() {
         onEndReachedThreshold={0.5}
       />
 
-      <Fab
-        onPress={() => router.push('/publish?type=scooter')}
-        accessibilityLabel="List a bike"
-      />
+      <Fab onPress={handleListBike} accessibilityLabel="List a bike" />
     </View>
   );
 }

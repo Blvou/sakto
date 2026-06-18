@@ -48,6 +48,17 @@ Never commit `.env`. Use `isSupabaseConfigured` from `src/lib/supabase.ts` to gu
 
 Use the `supabase-migration` skill for the full checklist.
 
+## UX contracts
+
+- **Loading:** skeletons on lists and grids; spinners only on buttons and blocking modals.
+- **Empty:** every list screen uses `EmptyState` with a clear CTA — never a blank screen.
+- **Error:** toast for transient failures; `ErrorState` with retry on full-screen list fetches.
+- **Copy:** English UI copy in product screens.
+- **Touch:** minimum 44px tap targets; status uses icon + text (`StatusBadge`), not color alone.
+- **Auth:** use `useRequireAuth()` before book/list flows; redirect to login with `returnTo`.
+
+Reusable UI lives in `src/design-system/components/` (`EmptyState`, `ErrorState`, `ScreenHeader`, `StatusBadge`, `ListSkeleton`).
+
 ## Cursor agent workflow
 
 ### Modes

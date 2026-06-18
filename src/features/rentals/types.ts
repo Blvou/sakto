@@ -14,6 +14,8 @@ export interface VehicleCardItem {
   model: string;
   pricePerDay: number;
   location: string;
+  lat?: number | null;
+  lng?: number | null;
   distanceKm: number | null;
   image: VehicleImage;
   instant: boolean;
@@ -27,7 +29,7 @@ export interface VehicleDetail extends VehicleRow {
 }
 
 export interface BookingItem extends BookingRow {
-  vehicle: Pick<VehicleRow, 'id' | 'title' | 'price_per_day' | 'location'> & {
+  vehicle: Pick<VehicleRow, 'id' | 'title' | 'price_per_day' | 'location' | 'lat' | 'lng'> & {
     photos: Pick<VehiclePhotoRow, 'storage_path' | 'sort_order'>[];
   };
   owner?: ProfilePreview;
@@ -45,6 +47,12 @@ export interface VehicleSearchParams {
   query?: string;
   city?: string;
   limit?: number;
+  filter?: string;
+  near?: {
+    lat: number;
+    lng: number;
+    radiusKm: number;
+  };
 }
 
 export interface VehiclesPage {
@@ -56,11 +64,21 @@ export const rentalQueryKeys = {
   all: ['rentals'] as const,
   vehicles: ['rentals', 'vehicles'] as const,
   vehicleList: (params?: VehicleSearchParams) =>
-    ['rentals', 'vehicles', params?.query ?? '', params?.city ?? ''] as const,
+    [
+      'rentals',
+      'vehicles',
+      params?.query ?? '',
+      params?.city ?? '',
+      params?.filter ?? '',
+      params?.near?.lat ?? '',
+      params?.near?.lng ?? '',
+      params?.near?.radiusKm ?? '',
+    ] as const,
   vehicleDetail: (id: string) => ['rentals', 'vehicles', id] as const,
   vehicleBlockedDates: (id: string, from: string, to: string) =>
     ['rentals', 'vehicles', id, 'blocked', from, to] as const,
   renterBookings: (userId: string) => ['rentals', 'bookings', 'renter', userId] as const,
   ownerBookings: (userId: string) => ['rentals', 'bookings', 'owner', userId] as const,
+  bookingDetail: (id: string) => ['rentals', 'bookings', 'detail', id] as const,
   myVehicles: (userId: string) => ['rentals', 'vehicles', 'mine', userId] as const,
 };

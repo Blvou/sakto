@@ -5,7 +5,7 @@ import type { BookingItem, BookingRow, VehiclePhotoRow, VehicleRow } from '../ty
 const SERVICE_FEE = 50;
 
 type BookingJoinRow = BookingRow & {
-  vehicle: Pick<VehicleRow, 'id' | 'title' | 'price_per_day' | 'location'> & {
+  vehicle: Pick<VehicleRow, 'id' | 'title' | 'price_per_day' | 'location' | 'lat' | 'lng'> & {
     photos: Pick<VehiclePhotoRow, 'storage_path' | 'sort_order'>[];
   };
   owner?: { id: string; display_name: string; avatar_url: string | null };
@@ -115,6 +115,8 @@ export async function fetchRenterBookings(renterId: string): Promise<BookingItem
         title,
         price_per_day,
         location,
+        lat,
+        lng,
         photos:vehicle_photos ( storage_path, sort_order )
       ),
       owner:profiles!owner_id ( id, display_name, avatar_url )
@@ -151,6 +153,8 @@ export async function fetchOwnerBookings(ownerId: string): Promise<BookingItem[]
         title,
         price_per_day,
         location,
+        lat,
+        lng,
         photos:vehicle_photos ( storage_path, sort_order )
       ),
       renter:profiles!renter_id ( id, display_name, avatar_url )
@@ -180,4 +184,49 @@ export async function updateBookingStatus(
 
   const { error } = await query;
   if (error) throw error;
+}
+
+export async function fetchBookingById(
+  bookingId: string,
+  userId: string
+): Promise<BookingItem | null> {
+  const { data, error } = await supabase
+    .from('bookings')
+    .select(
+      `
+      id,
+      vehicle_id,
+      renter_id,
+      owner_id,
+      start_date,
+      end_date,
+      days,
+      price_per_day,
+      service_fee,
+      total_amount,
+      status,
+      message,
+      created_at,
+      updated_at,
+      vehicle:vehicles!vehicle_id (
+        id,
+        title,
+        price_per_day,
+        location,
+        lat,
+        lng,
+        photos:vehicle_photos ( storage_path, sort_order )
+      ),
+      owner:profiles!owner_id ( id, display_name, avatar_url ),
+      renter:profiles!renter_id ( id, display_name, avatar_url )
+    `
+    )
+    .eq('id', bookingId)
+    .or(`renter_id.eq.${userId},owner_id.eq.${userId}`)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) return null;
+
+  return mapBooking(data as unknown as BookingJoinRow);
 }

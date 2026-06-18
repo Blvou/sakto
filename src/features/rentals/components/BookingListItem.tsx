@@ -1,24 +1,17 @@
 import { memo, useCallback } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { Image } from 'expo-image';
-import { Badge } from '@/src/design-system/components/Badge';
+import { StatusBadge } from '@/src/design-system/components/StatusBadge';
 import { typography } from '@/src/design-system/tokens';
 import { formatPrice } from '@/src/features/home/data/mock-data';
 import { useTheme } from '@/src/hooks/use-theme';
 import { getVehiclePhotoSource } from '../api/vehicles';
 import type { BookingItem, BookingStatus } from '../types';
 
-const statusVariant: Record<BookingStatus, 'success' | 'warning' | 'primary' | 'secondary' | 'urgent'> = {
-  pending: 'warning',
-  confirmed: 'success',
-  declined: 'urgent',
-  cancelled: 'secondary',
-  completed: 'primary',
-};
-
 interface BookingListItemProps {
   booking: BookingItem;
   role: 'renter' | 'owner';
+  onPress?: (bookingId: string) => void;
   onConfirm?: (bookingId: string) => void;
   onDecline?: (bookingId: string) => void;
   onCancel?: (bookingId: string) => void;
@@ -30,6 +23,7 @@ interface BookingListItemProps {
 export const BookingListItem = memo(function BookingListItem({
   booking,
   role,
+  onPress,
   onConfirm,
   onDecline,
   onCancel,
@@ -44,6 +38,7 @@ export const BookingListItem = memo(function BookingListItem({
   const canRenterCancel =
     role === 'renter' && (booking.status === 'pending' || booking.status === 'confirmed');
 
+  const handlePress = useCallback(() => onPress?.(booking.id), [booking.id, onPress]);
   const handleConfirm = useCallback(() => onConfirm?.(booking.id), [booking.id, onConfirm]);
   const handleDecline = useCallback(() => onDecline?.(booking.id), [booking.id, onDecline]);
   const handleCancel = useCallback(() => onCancel?.(booking.id), [booking.id, onCancel]);
@@ -51,7 +46,8 @@ export const BookingListItem = memo(function BookingListItem({
   const canMessage = booking.status !== 'declined' && booking.status !== 'cancelled';
 
   return (
-    <View
+    <Pressable
+      onPress={onPress ? handlePress : undefined}
       style={{
         backgroundColor: colors.surface,
         borderColor: colors.border,
@@ -60,6 +56,8 @@ export const BookingListItem = memo(function BookingListItem({
         padding: 12,
         marginBottom: 12,
       }}
+      accessibilityRole={onPress ? 'button' : undefined}
+      accessibilityLabel={`Booking for ${booking.vehicle.title}`}
     >
       <View style={{ flexDirection: 'row', gap: 12 }}>
         <Image
@@ -73,7 +71,7 @@ export const BookingListItem = memo(function BookingListItem({
             <Text style={{ ...typography.h3, color: colors.textPrimary, flex: 1 }} numberOfLines={1}>
               {booking.vehicle.title}
             </Text>
-            <Badge label={booking.status} variant={statusVariant[booking.status]} />
+            <StatusBadge status={booking.status as BookingStatus} />
           </View>
           <Text style={{ ...typography.caption, color: colors.textSecondary, marginTop: 4 }}>
             {booking.start_date} - {booking.end_date} • {booking.days}d
@@ -84,7 +82,7 @@ export const BookingListItem = memo(function BookingListItem({
           <Text style={{ ...typography.caption, color: colors.textSecondary, marginTop: 2 }}>
             {role === 'owner'
               ? `Renter: ${booking.renter?.display_name ?? 'Sakto user'}`
-              : `Owner: ${booking.owner?.display_name ?? 'Sakto user'}`}
+              : `Host: ${booking.owner?.display_name ?? 'Sakto user'}`}
           </Text>
         </View>
       </View>
@@ -176,6 +174,6 @@ export const BookingListItem = memo(function BookingListItem({
           )}
         </View>
       )}
-    </View>
+    </Pressable>
   );
 });

@@ -1,15 +1,17 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { ArrowLeft, Calendar, MapPin, Navigation, Star } from 'lucide-react-native';
 import { toast } from 'sonner-native';
+import { Avatar } from '@/src/design-system/components/Avatar';
 import { Badge } from '@/src/design-system/components/Badge';
 import { typography } from '@/src/design-system/tokens';
 import { useAuth } from '@/src/features/auth/hooks/use-auth';
 import { scooters, formatPrice } from '@/src/features/home/data/mock-data';
-import { getVehiclePhotoSource } from '@/src/features/rentals/api/vehicles';
+import { getVehiclePhotoSource, mockVehicleCards } from '@/src/features/rentals/api/vehicles';
 import { VehicleLocationMap } from '@/src/features/rentals/components/VehicleLocationMap';
+import { AvailabilityCalendar } from '@/src/features/rentals/components/AvailabilityCalendar';
 import { useCreateBooking } from '@/src/features/rentals/hooks/use-bookings';
 import { useVehicleBlockedDates } from '@/src/features/rentals/hooks/use-vehicle-blocked-dates';
 import { useVehicle } from '@/src/features/rentals/hooks/use-vehicles';
@@ -23,6 +25,7 @@ import {
   toDateOnly,
 } from '@/src/features/rentals/utils/date-availability';
 import { useTheme } from '@/src/hooks/use-theme';
+import { useRequireAuth } from '@/src/hooks/use-require-auth';
 import { openMapsNavigation, resolveVehicleCoordinates } from '@/src/lib/maps';
 import { isSupabaseConfigured } from '@/src/lib/supabase';
 
@@ -32,9 +35,11 @@ export default function ScooterDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors, isDark } = useTheme();
   const router = useRouter();
+  const requireAuth = useRequireAuth();
   const { userId } = useAuth();
   const [selectedDays, setSelectedDays] = useState(1);
   const [startDate, setStartDate] = useState(toDateOnly(new Date()));
+  const [refreshing, setRefreshing] = useState(false);
   const createBooking = useCreateBooking();
   const vehicleQuery = useVehicle(id);
 
@@ -85,17 +90,26 @@ export default function ScooterDetailScreen() {
   const isOwnVehicle = !!userId && detail.ownerId === userId;
   const canBook =
     !isMock && !!vehicle && !isOwnVehicle && !createBooking.isPending && !isSelectedRangeBlocked;
-  const mapCoordinates = useMemo(
-    () =>
-      resolveVehicleCoordinates(
-        vehicle
-          ? { lat: vehicle.lat, lng: vehicle.lng, location: vehicle.location, city: vehicle.city }
-          : { location: detail.location }
-      ),
-    [detail.location, vehicle]
-  );
+  const mapCoordinates = useMemo(() => {
+    if (vehicle) {
+      return resolveVehicleCoordinates({
+        lat: vehicle.lat,
+        lng: vehicle.lng,
+        location: vehicle.location,
+        city: vehicle.city,
+      });
+    }
+
+    if (isMock) {
+      const mockCard = mockVehicleCards().find((item) => item.id === id);
+      return resolveVehicleCoordinates(mockCard ?? null);
+    }
+
+    return null;
+  }, [id, isMock, vehicle]);
 
   const handleNavigate = async () => {
+    if (!mapCoordinates) return;
     const opened = await openMapsNavigation(mapCoordinates, detail.title);
     if (!opened) {
       toast.error('Could not open maps on this device');
@@ -126,6 +140,10 @@ export default function ScooterDetailScreen() {
   };
 
   const handleBook = () => {
+    if (!requireAuth({ message: 'Sign in to request a booking', returnTo: `/scooter/${id}` })) {
+      return;
+    }
+
     if (isMock) {
       toast.error('Connect Supabase and publish a real bike to request booking');
       return;
@@ -148,11 +166,17 @@ export default function ScooterDetailScreen() {
     }
 
     createBooking.mutate(parsed.data, {
-      onSuccess: () => {
-        router.push('/bookings');
+      onSuccess: (bookingId) => {
+        router.push(`/bookings/${bookingId}` as import('expo-router').Href);
       },
     });
   };
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await Promise.all([vehicleQuery.refetch(), blockedDatesQuery.refetch()]);
+    setRefreshing(false);
+  }, [blockedDatesQuery, vehicleQuery]);
 
   if (vehicleQuery.isLoading && !isMock) {
     return (
@@ -190,7 +214,31 @@ export default function ScooterDetailScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <View style={{ height: 240, position: 'relative' }}>
-        <VehicleLocationMap coordinates={mapCoordinates} isDark={isDark} />
+        {mapCoordinates ? (
+          <VehicleLocationMap coordinates={mapCoordinates} isDark={isDark} />
+        ) : (
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: colors.surface,
+              alignItems: 'center',
+              justifyContent: 'center',
+              paddingHorizontal: 24,
+            }}
+          >
+            <MapPin color={colors.textSecondary} size={28} />
+            <Text
+              style={{
+                ...typography.body,
+                color: colors.textSecondary,
+                textAlign: 'center',
+                marginTop: 12,
+              }}
+            >
+              Exact pickup location will be shared after booking confirmation.
+            </Text>
+          </View>
+        )}
 
         <Pressable
           onPress={() => router.back()}
@@ -209,33 +257,40 @@ export default function ScooterDetailScreen() {
           <ArrowLeft color={colors.textPrimary} size={22} />
         </Pressable>
 
-        <Pressable
-          onPress={handleNavigate}
-          style={{
-            position: 'absolute',
-            bottom: 16,
-            right: 16,
-            flexDirection: 'row',
-            alignItems: 'center',
-            backgroundColor: colors.surface,
-            paddingHorizontal: 14,
-            paddingVertical: 10,
-            borderRadius: 20,
-            gap: 6,
-            shadowColor: '#000',
-            shadowOpacity: 0.1,
-            shadowRadius: 8,
-            elevation: 4,
-          }}
-        >
-          <Navigation color={colors.primary} size={16} />
-          <Text style={{ ...typography.caption, fontFamily: 'PlusJakartaSans_600SemiBold', color: colors.primary }}>
-            Navigate
-          </Text>
-        </Pressable>
+        {mapCoordinates ? (
+          <Pressable
+            onPress={handleNavigate}
+            style={{
+              position: 'absolute',
+              bottom: 16,
+              right: 16,
+              flexDirection: 'row',
+              alignItems: 'center',
+              backgroundColor: colors.surface,
+              paddingHorizontal: 14,
+              paddingVertical: 10,
+              borderRadius: 20,
+              gap: 6,
+              shadowColor: '#000',
+              shadowOpacity: 0.1,
+              shadowRadius: 8,
+              elevation: 4,
+            }}
+          >
+            <Navigation color={colors.primary} size={16} />
+            <Text style={{ ...typography.caption, fontFamily: 'PlusJakartaSans_600SemiBold', color: colors.primary }}>
+              Navigate
+            </Text>
+          </Pressable>
+        ) : null}
       </View>
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 120 }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+        }
+      >
         <View style={{ padding: 16 }}>
           <View style={{ flexDirection: 'row', gap: 12 }}>
             <Image
@@ -273,6 +328,36 @@ export default function ScooterDetailScreen() {
           <Text style={{ ...typography.body, color: colors.textSecondary, marginTop: 16 }}>
             {detail.description}
           </Text>
+
+          {vehicle?.owner ? (
+            <View
+              style={{
+                marginTop: 20,
+                padding: 16,
+                backgroundColor: colors.surface,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: colors.border,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 12,
+              }}
+            >
+              <Avatar uri={vehicle.owner.avatar_url} name={vehicle.owner.display_name} size={48} />
+              <View style={{ flex: 1 }}>
+                <Text style={{ ...typography.caption, color: colors.textSecondary }}>Hosted by</Text>
+                <Text style={{ ...typography.body, color: colors.textPrimary, fontFamily: 'PlusJakartaSans_600SemiBold' }}>
+                  {vehicle.owner.display_name}
+                </Text>
+              </View>
+            </View>
+          ) : null}
+
+          {!isMock && blockedDates.size > 0 ? (
+            <View style={{ marginTop: 24 }}>
+              <AvailabilityCalendar blockedDates={blockedDates} readOnly />
+            </View>
+          ) : null}
 
           <Text style={{ ...typography.h3, color: colors.textPrimary, marginTop: 24 }}>Start date</Text>
           {blockedDatesQuery.isLoading && !isMock ? (

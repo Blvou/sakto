@@ -1,4 +1,12 @@
 import { scooters } from '@/src/features/home/data/mock-data';
+import {
+  boundingBox,
+  haversineDistanceKm,
+  hasValidCoordinates,
+  MANILA_DEFAULT_COORDS,
+  sortByDistance,
+  type MapCoordinates,
+} from '@/src/lib/maps';
 import { supabase } from '@/src/lib/supabase';
 import type { CreateVehicleInput } from '../schemas';
 import type {
@@ -19,11 +27,17 @@ type VehicleCardRow = Pick<
   | 'model'
   | 'price_per_day'
   | 'location'
+  | 'lat'
+  | 'lng'
   | 'instant_booking'
   | 'created_at'
 > & {
   photos: Pick<VehiclePhotoRow, 'storage_path' | 'sort_order'>[];
 };
+
+interface MapVehicleCardOptions {
+  userCoords?: MapCoordinates | null;
+}
 
 type VehicleDetailRow = VehicleRow & {
   photos: VehiclePhotoRow[];
@@ -38,8 +52,17 @@ function getVehiclePhotoSource(path?: string | null) {
   return { uri: data.publicUrl };
 }
 
-function mapVehicleCard(row: VehicleCardRow): VehicleCardItem {
+function mapVehicleCard(row: VehicleCardRow, options?: MapVehicleCardOptions): VehicleCardItem {
   const cover = [...row.photos].sort((a, b) => a.sort_order - b.sort_order)[0];
+  const distanceKm =
+    options?.userCoords && hasValidCoordinates(row)
+      ? Math.round(
+          haversineDistanceKm(options.userCoords, {
+            latitude: row.lat,
+            longitude: row.lng,
+          }) * 10
+        ) / 10
+      : null;
 
   return {
     id: row.id,
@@ -47,7 +70,9 @@ function mapVehicleCard(row: VehicleCardRow): VehicleCardItem {
     model: row.model,
     pricePerDay: Number(row.price_per_day),
     location: row.location,
-    distanceKm: null,
+    lat: row.lat,
+    lng: row.lng,
+    distanceKm,
     image: getVehiclePhotoSource(cover?.storage_path),
     instant: row.instant_booking,
     rating: null,
@@ -55,26 +80,37 @@ function mapVehicleCard(row: VehicleCardRow): VehicleCardItem {
   };
 }
 
-export function mockVehicleCards(): VehicleCardItem[] {
-  return scooters.map((scooter) => ({
-    id: scooter.id,
-    title: scooter.model,
-    model: scooter.model,
-    pricePerDay: scooter.pricePerDay,
-    location: 'Manila',
-    distanceKm: scooter.distanceKm,
-    image: scooter.image,
-    instant: scooter.instant,
-    rating: scooter.rating,
-    reviewCount: scooter.reviewCount,
-  }));
+export function mockVehicleCards(userCoords?: MapCoordinates | null): VehicleCardItem[] {
+  return scooters.map((scooter, index) => {
+    const lat = MANILA_DEFAULT_COORDS.latitude + index * 0.008;
+    const lng = MANILA_DEFAULT_COORDS.longitude + index * 0.006;
+
+    return {
+      id: scooter.id,
+      title: scooter.model,
+      model: scooter.model,
+      pricePerDay: scooter.pricePerDay,
+      location: 'Manila',
+      lat,
+      lng,
+      distanceKm: userCoords
+        ? Math.round(haversineDistanceKm(userCoords, { latitude: lat, longitude: lng }) * 10) / 10
+        : scooter.distanceKm,
+      image: scooter.image,
+      instant: scooter.instant,
+      rating: scooter.rating,
+      reviewCount: scooter.reviewCount,
+    };
+  });
 }
 
 export async function fetchVehiclesPage(
   params?: VehicleSearchParams,
-  cursor?: VehiclesPageCursor
+  cursor?: VehiclesPageCursor,
+  options?: MapVehicleCardOptions
 ): Promise<VehiclesPage> {
   const limit = params?.limit ?? VEHICLES_PAGE_SIZE;
+  const userCoords = options?.userCoords ?? null;
 
   let query = supabase
     .from('vehicles')
@@ -85,6 +121,8 @@ export async function fetchVehiclesPage(
       model,
       price_per_day,
       location,
+      lat,
+      lng,
       instant_booking,
       created_at,
       photos:vehicle_photos ( storage_path, sort_order )
@@ -105,6 +143,17 @@ export async function fetchVehiclesPage(
     query = query.ilike('city', params.city);
   }
 
+  if (params?.near) {
+    const box = boundingBox(params.near.lat, params.near.lng, params.near.radiusKm);
+    query = query
+      .not('lat', 'is', null)
+      .not('lng', 'is', null)
+      .gte('lat', box.minLat)
+      .lte('lat', box.maxLat)
+      .gte('lng', box.minLng)
+      .lte('lng', box.maxLng);
+  }
+
   if (cursor) {
     query = query.or(
       `created_at.lt.${cursor.created_at},and(created_at.eq.${cursor.created_at},id.lt.${cursor.id})`
@@ -114,11 +163,23 @@ export async function fetchVehiclesPage(
   const { data, error } = await query;
   if (error) throw error;
 
-  const rows = (data ?? []) as unknown as VehicleCardRow[];
+  let rows = (data ?? []) as unknown as VehicleCardRow[];
+
+  if (params?.near && userCoords) {
+    rows = sortByDistance(rows, userCoords);
+    rows = rows.filter((row) => {
+      if (!hasValidCoordinates(row)) return false;
+      return (
+        haversineDistanceKm(userCoords, { latitude: row.lat, longitude: row.lng }) <=
+        params.near!.radiusKm
+      );
+    });
+  }
+
   const last = rows[rows.length - 1];
 
   return {
-    items: rows.map(mapVehicleCard),
+    items: rows.map((row) => mapVehicleCard(row, { userCoords })),
     nextCursor:
       rows.length === limit && last
         ? { created_at: last.created_at, id: last.id }
@@ -179,6 +240,8 @@ export async function createVehicle(ownerId: string, input: CreateVehicleInput):
       price_per_day: input.pricePerDay,
       location: input.location,
       city: input.city || null,
+      lat: input.lat,
+      lng: input.lng,
       instant_booking: input.instantBooking,
       status: 'active',
     })
@@ -227,6 +290,8 @@ export async function fetchMyVehicles(ownerId: string): Promise<VehicleCardItem[
       model,
       price_per_day,
       location,
+      lat,
+      lng,
       instant_booking,
       created_at,
       photos:vehicle_photos ( storage_path, sort_order )
@@ -237,7 +302,7 @@ export async function fetchMyVehicles(ownerId: string): Promise<VehicleCardItem[
 
   if (error) throw error;
 
-  return ((data ?? []) as unknown as VehicleCardRow[]).map(mapVehicleCard);
+  return ((data ?? []) as unknown as VehicleCardRow[]).map((row) => mapVehicleCard(row));
 }
 
 export { getVehiclePhotoSource };

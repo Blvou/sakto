@@ -15,7 +15,7 @@ interface HomeHeaderProps {
 
 export const HomeHeader = memo(function HomeHeader({
   location = 'Manila, PH',
-  notificationCount = 3,
+  notificationCount = 0,
   onLocationPress,
   onNotificationsPress,
   onChatPress,
@@ -80,6 +80,7 @@ export const HomeHeader = memo(function HomeHeader({
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flexShrink: 0 }}>
         <Pressable
           onPress={onNotificationsPress}
+          disabled={!onNotificationsPress}
           style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}
           accessibilityRole="button"
           accessibilityLabel="Notifications"

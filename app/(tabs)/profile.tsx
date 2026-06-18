@@ -7,8 +7,8 @@ import {
   HelpCircle,
   LogOut,
   MapPin,
+  Bell,
   Settings,
-  Shield,
   Star,
 } from 'lucide-react-native';
 import { toast } from 'sonner-native';
@@ -19,19 +19,20 @@ import { useAuth } from '@/src/features/auth/hooks/use-auth';
 import { signOut } from '@/src/features/auth/api/auth-api';
 import { Avatar } from '@/src/design-system/components/Avatar';
 import { useMyProfile } from '@/src/features/profile/hooks/use-my-profile';
+import { useProfileStats } from '@/src/features/profile/hooks/use-profile-stats';
 import { ImageCropModal } from '@/src/features/media/components/ImageCropModal';
 import { useUploadAvatar } from '@/src/features/profile/hooks/use-upload-avatar';
 import { useMyVehicles } from '@/src/features/rentals/hooks/use-my-vehicles';
 import { typography } from '@/src/design-system/tokens';
+import { useNotificationsStore } from '@/src/stores/notifications-store';
 
 const MENU_ITEMS = [
   { icon: MapPin, label: 'My bikes', route: '/my-listings' as const },
   { icon: Calendar, label: 'My bookings', route: '/bookings' as const },
-  { icon: Calendar, label: 'Rental requests', route: '/bookings/owner' as const },
-  { icon: Star, label: 'Reviews', badge: '4.9' },
-  { icon: Shield, label: 'Verification', badge: 'Verified' },
-  { icon: Settings, label: 'Settings' },
-  { icon: HelpCircle, label: 'Help & Support' },
+  { icon: Calendar, label: 'Rental requests', route: '/bookings/owner' as const, badgeKey: 'pending' as const },
+  { icon: Star, label: 'Reviews', route: null },
+  { icon: Settings, label: 'Settings', route: null },
+  { icon: HelpCircle, label: 'Help & Support', route: null },
 ];
 
 export default function ProfileScreen() {
@@ -42,6 +43,8 @@ export default function ProfileScreen() {
   const { user, userId } = useAuth();
   const router = useRouter();
   const { data: profile } = useMyProfile();
+  const stats = useProfileStats();
+  const unreadNotifications = useNotificationsStore((s) => s.unreadCount());
   const {
     pickAvatar,
     pendingCrop,
@@ -112,33 +115,16 @@ export default function ProfileScreen() {
           <View style={{ marginLeft: 16, flex: 1 }}>
             <Text style={{ ...typography.h2, color: colors.textPrimary }}>{displayName}</Text>
             <Text style={{ ...typography.caption, color: colors.textSecondary, marginTop: 2 }}>
-              Manila, Philippines
+              {user?.email ?? '—'}
             </Text>
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                marginTop: 6,
-                backgroundColor: '#E8F9EF',
-                alignSelf: 'flex-start',
-                paddingHorizontal: 8,
-                paddingVertical: 3,
-                borderRadius: 6,
-              }}
-            >
-              <Shield color="#00A844" size={12} />
-              <Text style={{ ...typography.caption, color: '#00A844', marginLeft: 4, fontFamily: 'PlusJakartaSans_600SemiBold' }}>
-                Verified host
-              </Text>
-            </View>
           </View>
         </View>
 
         <View style={{ flexDirection: 'row', marginTop: 16, gap: 12 }}>
           {[
             { label: 'Bikes', value: String(bikesCount) },
-            { label: 'Trips', value: '0' },
-            { label: 'Rating', value: '4.9' },
+            { label: 'Trips', value: String(stats.trips) },
+            { label: 'Rating', value: stats.rating != null ? stats.rating.toFixed(1) : '—' },
           ].map((stat) => (
             <View
               key={stat.label}
@@ -176,36 +162,80 @@ export default function ProfileScreen() {
         </View>
 
         <View style={{ marginTop: 16, ...cardLgStyle }}>
-          {MENU_ITEMS.map((item, i) => (
-            <Pressable
-              key={item.label}
-              onPress={'route' in item && item.route ? () => router.push(item.route) : undefined}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                padding: 16,
-                minHeight: 56,
-                borderBottomWidth: i < MENU_ITEMS.length - 1 ? 1 : 0,
-                borderBottomColor: colors.border,
-              }}
-            >
-              <item.icon color={colors.textSecondary} size={20} strokeWidth={1.5} />
-              <Text style={{ ...typography.body, color: colors.textPrimary, flex: 1, marginLeft: 12 }}>
-                {item.label}
+          {MENU_ITEMS.map((item, i) => {
+            const badge =
+              item.badgeKey === 'pending' && stats.pendingRequests > 0
+                ? String(stats.pendingRequests)
+                : item.label === 'My bookings' && stats.upcomingTrips > 0
+                  ? String(stats.upcomingTrips)
+                  : null;
+
+            return (
+              <Pressable
+                key={item.label}
+                onPress={item.route ? () => router.push(item.route!) : undefined}
+                disabled={!item.route}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  padding: 16,
+                  minHeight: 56,
+                  borderBottomWidth: i < MENU_ITEMS.length - 1 ? 1 : 0,
+                  borderBottomColor: colors.border,
+                  opacity: item.route ? 1 : 0.5,
+                }}
+              >
+                <item.icon color={colors.textSecondary} size={20} strokeWidth={1.5} />
+                <Text style={{ ...typography.body, color: colors.textPrimary, flex: 1, marginLeft: 12 }}>
+                  {item.label}
+                </Text>
+                {badge ? (
+                  <View
+                    style={{
+                      backgroundColor: colors.secondary,
+                      borderRadius: 10,
+                      minWidth: 20,
+                      height: 20,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      paddingHorizontal: 6,
+                      marginRight: 8,
+                    }}
+                  >
+                    <Text style={{ color: '#FFF', fontSize: 11, fontFamily: 'PlusJakartaSans_700Bold' }}>
+                      {badge}
+                    </Text>
+                  </View>
+                ) : null}
+                {'route' in item && item.route === '/my-listings' && bikesCount > 0 && !badge ? (
+                  <Text style={{ ...typography.caption, color: colors.textSecondary, marginRight: 8 }}>
+                    {bikesCount}
+                  </Text>
+                ) : null}
+                <ChevronRight color={colors.textSecondary} size={18} />
+              </Pressable>
+            );
+          })}
+          <Pressable
+            onPress={() => router.push('/notifications' as import('expo-router').Href)}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              padding: 16,
+              minHeight: 56,
+            }}
+          >
+            <Bell color={colors.textSecondary} size={20} strokeWidth={1.5} />
+            <Text style={{ ...typography.body, color: colors.textPrimary, flex: 1, marginLeft: 12 }}>
+              Notifications
+            </Text>
+            {unreadNotifications > 0 ? (
+              <Text style={{ ...typography.caption, color: colors.textSecondary, marginRight: 8 }}>
+                {unreadNotifications}
               </Text>
-              {'badge' in item && item.badge && (
-                <Text style={{ ...typography.caption, color: colors.textSecondary, marginRight: 8 }}>
-                  {item.badge}
-                </Text>
-              )}
-              {'route' in item && item.route === '/my-listings' && bikesCount > 0 && (
-                <Text style={{ ...typography.caption, color: colors.textSecondary, marginRight: 8 }}>
-                  {bikesCount}
-                </Text>
-              )}
-              <ChevronRight color={colors.textSecondary} size={18} />
-            </Pressable>
-          ))}
+            ) : null}
+            <ChevronRight color={colors.textSecondary} size={18} />
+          </Pressable>
         </View>
 
         <Pressable
