@@ -10,8 +10,11 @@ import { typography } from '@/src/design-system/tokens';
 import { useAuth } from '@/src/features/auth/hooks/use-auth';
 import { scooters, formatPrice } from '@/src/features/home/data/mock-data';
 import { getVehiclePhotoSource, mockVehicleCards } from '@/src/features/rentals/api/vehicles';
+import { DEMO_VEHICLES } from '@/src/features/rentals/data/demo-vehicles';
 import { VehicleLocationMap } from '@/src/features/rentals/components/VehicleLocationMap';
+import { VehicleSpecs } from '@/src/features/rentals/components/VehicleSpecs';
 import { AvailabilityCalendar } from '@/src/features/rentals/components/AvailabilityCalendar';
+import { resolveVehicleSpecs } from '@/src/features/rentals/utils/vehicle-specs';
 import { useCreateBooking } from '@/src/features/rentals/hooks/use-bookings';
 import { useVehicleBlockedDates } from '@/src/features/rentals/hooks/use-vehicle-blocked-dates';
 import { useVehicle } from '@/src/features/rentals/hooks/use-vehicles';
@@ -44,6 +47,10 @@ export default function ScooterDetailScreen() {
   const vehicleQuery = useVehicle(id);
 
   const mockScooter = scooters.find((s) => s.id === id) ?? scooters[0];
+  const demoVehicle = useMemo(
+    () => DEMO_VEHICLES.find((item) => item.mockId === id || item.supabaseId === id),
+    [id]
+  );
   const vehicle = vehicleQuery.data;
   const isMock = !isSupabaseConfigured || id.startsWith('s');
   const blockedDatesQuery = useVehicleBlockedDates(isMock ? undefined : id, DATE_HORIZON_DAYS);
@@ -77,6 +84,41 @@ export default function ScooterDetailScreen() {
       description: 'A clean, city-friendly scooter for short daily rentals.',
     };
   }, [mockScooter, vehicle]);
+
+  const specs = useMemo(() => {
+    if (vehicle) {
+      return resolveVehicleSpecs({
+        brand: vehicle.brand,
+        model: vehicle.model,
+        year: vehicle.year,
+        title: vehicle.title,
+        instant: vehicle.instant_booking,
+        city: vehicle.city,
+        fuelType: vehicle.title.toLowerCase().includes('electric') ? 'electric' : 'gasoline',
+        engineCc: demoVehicle?.engineCc,
+        transmission: demoVehicle?.transmission,
+      });
+    }
+
+    if (demoVehicle) {
+      return resolveVehicleSpecs({
+        brand: demoVehicle.brand,
+        model: demoVehicle.model,
+        year: demoVehicle.year,
+        title: demoVehicle.title,
+        instant: demoVehicle.instant,
+        city: demoVehicle.city,
+        fuelType: demoVehicle.fuelType,
+        engineCc: demoVehicle.engineCc,
+        transmission: demoVehicle.transmission,
+      });
+    }
+
+    return resolveVehicleSpecs({
+      title: mockScooter.model,
+      instant: mockScooter.instant,
+    });
+  }, [demoVehicle, mockScooter, vehicle]);
 
   const serviceFee = 50;
   const total = detail.pricePerDay * selectedDays;
@@ -328,6 +370,8 @@ export default function ScooterDetailScreen() {
           <Text style={{ ...typography.body, color: colors.textSecondary, marginTop: 16 }}>
             {detail.description}
           </Text>
+
+          <VehicleSpecs specs={specs} />
 
           {vehicle?.owner ? (
             <View

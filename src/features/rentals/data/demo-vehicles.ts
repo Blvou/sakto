@@ -1,4 +1,6 @@
 export type DemoVehicleImageKey = 's1' | 's2' | 's3';
+export type VehicleFuelType = 'gasoline' | 'electric';
+export type VehicleTransmission = 'automatic' | 'manual';
 
 export interface DemoVehicle {
   mockId: string;
@@ -18,6 +20,9 @@ export interface DemoVehicle {
   reviewCount: number;
   distanceKm: number;
   imageKey: DemoVehicleImageKey;
+  fuelType: VehicleFuelType;
+  engineCc: number;
+  transmission: VehicleTransmission;
 }
 
 /** Curated demo fleet for Manila — used by mock catalog and Supabase seed script. */
@@ -41,6 +46,9 @@ export const DEMO_VEHICLES: DemoVehicle[] = [
     reviewCount: 120,
     distanceKm: 1.2,
     imageKey: 's1',
+    fuelType: 'gasoline',
+    engineCc: 110,
+    transmission: 'automatic',
   },
   {
     mockId: 's2',
@@ -60,6 +68,9 @@ export const DEMO_VEHICLES: DemoVehicle[] = [
     reviewCount: 89,
     distanceKm: 0.8,
     imageKey: 's2',
+    fuelType: 'gasoline',
+    engineCc: 125,
+    transmission: 'automatic',
   },
   {
     mockId: 's3',
@@ -80,6 +91,9 @@ export const DEMO_VEHICLES: DemoVehicle[] = [
     reviewCount: 203,
     distanceKm: 2.1,
     imageKey: 's3',
+    fuelType: 'gasoline',
+    engineCc: 160,
+    transmission: 'automatic',
   },
   {
     mockId: 's4',
@@ -99,6 +113,9 @@ export const DEMO_VEHICLES: DemoVehicle[] = [
     reviewCount: 64,
     distanceKm: 3.4,
     imageKey: 's1',
+    fuelType: 'gasoline',
+    engineCc: 115,
+    transmission: 'manual',
   },
   {
     mockId: 's5',
@@ -118,6 +135,9 @@ export const DEMO_VEHICLES: DemoVehicle[] = [
     reviewCount: 41,
     distanceKm: 5.2,
     imageKey: 's2',
+    fuelType: 'electric',
+    engineCc: 0,
+    transmission: 'automatic',
   },
   {
     mockId: 's6',
@@ -137,6 +157,9 @@ export const DEMO_VEHICLES: DemoVehicle[] = [
     reviewCount: 156,
     distanceKm: 1.9,
     imageKey: 's3',
+    fuelType: 'gasoline',
+    engineCc: 155,
+    transmission: 'automatic',
   },
 ];
 

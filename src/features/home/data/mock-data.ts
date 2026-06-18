@@ -1,12 +1,14 @@
 import { DEMO_VEHICLE_IMAGES, DEMO_VEHICLES } from '@/src/features/rentals/data/demo-vehicles';
+import type { BrowseCategoryId } from '@/src/features/rentals/utils/vehicle-filters';
 
 export type ProductImage = number;
 
+export type CategoryIconName = 'map-pin' | 'zap' | 'bike' | 'calendar-days' | 'trending-up';
+
 export interface Category {
-  id: string;
+  id: BrowseCategoryId;
   label: string;
-  emoji: string;
-  highlight?: boolean;
+  icon: CategoryIconName;
 }
 
 export interface ScooterListing {
@@ -31,12 +33,11 @@ export interface PromoBanner {
 }
 
 export const categories: Category[] = [
-  { id: 'nearby', label: 'Nearby', emoji: '📍', highlight: true },
-  { id: 'electric', label: 'Electric', emoji: '⚡' },
-  { id: 'manual', label: 'Manual', emoji: '🛵' },
-  { id: 'hourly', label: 'By hour', emoji: '⏱️' },
-  { id: 'daily', label: 'By day', emoji: '📅' },
-  { id: 'popular', label: 'Popular', emoji: '🔥' },
+  { id: 'nearby', label: 'Nearby', icon: 'map-pin' },
+  { id: 'electric', label: 'Electric', icon: 'zap' },
+  { id: 'manual', label: 'Manual', icon: 'bike' },
+  { id: 'daily', label: 'By day', icon: 'calendar-days' },
+  { id: 'popular', label: 'Popular', icon: 'trending-up' },
 ];
 
 export const promoBanners: PromoBanner[] = [

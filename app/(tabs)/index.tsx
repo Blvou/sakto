@@ -22,8 +22,10 @@ import { useVehicles } from '@/src/features/rentals/hooks/use-vehicles';
 import { useUserLocation } from '@/src/features/rentals/hooks/use-user-location';
 import {
   buildVehicleSearchParams,
+  categoryIdToFilter,
   DEFAULT_VEHICLE_FILTER,
   filterLabelToId,
+  filterToCategoryId,
   type VehicleFilterOption,
 } from '@/src/features/rentals/utils/vehicle-filters';
 import { useRequireAuth } from '@/src/hooks/use-require-auth';
@@ -51,6 +53,7 @@ export default function HomeScreen() {
 
   const [quickFilter, setQuickFilter] = useState<VehicleFilterOption>(DEFAULT_VEHICLE_FILTER);
   const [activeFilter, setActiveFilter] = useState<VehicleFilterOption>(DEFAULT_VEHICLE_FILTER);
+  const [selectedCategory, setSelectedCategory] = useState<string>('nearby');
   const [refreshing, setRefreshing] = useState(false);
 
   const searchParams = useMemo(
@@ -93,12 +96,13 @@ export default function HomeScreen() {
     router.push('/notifications' as Href);
   }, [router]);
 
-  const handleCategoryPress = useCallback(
-    (cat: Category) => {
-      router.push({ pathname: '/(tabs)/search', params: { category: cat.id } });
-    },
-    [router]
-  );
+  const handleCategoryPress = useCallback((cat: Category) => {
+    const filter = categoryIdToFilter(cat.id);
+    if (!filter) return;
+    setActiveFilter(filter);
+    setQuickFilter(filter);
+    setSelectedCategory(cat.id);
+  }, []);
 
   const handleVehiclePress = useCallback(
     (id: string) => {
@@ -118,6 +122,7 @@ export default function HomeScreen() {
     const next = filterLabelToId(label);
     setActiveFilter(next);
     setQuickFilter(next);
+    setSelectedCategory(filterToCategoryId(next));
   }, []);
 
   const handleEndReached = useCallback(() => {
@@ -144,7 +149,11 @@ export default function HomeScreen() {
           onPress={handleSearchFocus}
         />
         <PromoCarousel banners={promoBanners} />
-        <CategoryGrid categories={categories} onCategoryPress={handleCategoryPress} />
+        <CategoryGrid
+          categories={categories}
+          selectedCategoryId={selectedCategory}
+          onCategoryPress={handleCategoryPress}
+        />
         {showFeaturedSkeleton ? (
           <View style={{ marginTop: 8, marginBottom: 16 }}>
             <Skeleton width={scale(200)} height={18} borderRadius={4} style={{ marginBottom: 12 }} />
@@ -168,6 +177,7 @@ export default function HomeScreen() {
     [
       quickFilter,
       activeFilter,
+      selectedCategory,
       handleCategoryPress,
       handleVehiclePress,
       handleSearchFocus,

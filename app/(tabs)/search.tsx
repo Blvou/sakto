@@ -17,8 +17,10 @@ import { useVehicles } from '@/src/features/rentals/hooks/use-vehicles';
 import { useUserLocation } from '@/src/features/rentals/hooks/use-user-location';
 import {
   buildVehicleSearchParams,
+  categoryIdToFilter,
   DEFAULT_VEHICLE_FILTER,
   filterLabelToId,
+  filterToCategoryId,
   type VehicleFilterOption,
 } from '@/src/features/rentals/utils/vehicle-filters';
 import type { VehicleCardItem } from '@/src/features/rentals/types';
@@ -36,12 +38,13 @@ function useDebouncedValue(value: string, delayMs: number): string {
   return debounced;
 }
 
-const CATEGORY_FILTER: Record<string, VehicleFilterOption> = {
+const CATEGORY_FILTER = {
   nearby: 'Nearby',
   electric: 'Electric',
   manual: 'Manual',
   daily: 'By day',
-};
+  popular: 'Popular',
+} as const;
 
 type ViewMode = 'list' | 'map';
 
@@ -52,12 +55,15 @@ export default function SearchScreen() {
   const { category: categoryParam } = useLocalSearchParams<{ category?: string }>();
   const [query, setQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<VehicleFilterOption>(DEFAULT_VEHICLE_FILTER);
+  const [selectedCategory, setSelectedCategory] = useState<string>('nearby');
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const debouncedQuery = useDebouncedValue(query, 350);
 
   useEffect(() => {
     if (typeof categoryParam === 'string' && categoryParam in CATEGORY_FILTER) {
-      setActiveFilter(CATEGORY_FILTER[categoryParam] ?? DEFAULT_VEHICLE_FILTER);
+      const filter = CATEGORY_FILTER[categoryParam as keyof typeof CATEGORY_FILTER];
+      setActiveFilter(filter);
+      setSelectedCategory(categoryParam);
     }
   }, [categoryParam]);
 
@@ -81,8 +87,10 @@ export default function SearchScreen() {
   const featuredVehicles = useMemo(() => vehicles.slice(0, 6), [vehicles]);
 
   const handleCategoryPress = useCallback((category: Category) => {
-    const filter = CATEGORY_FILTER[category.id];
-    if (filter) setActiveFilter(filter);
+    const filter = categoryIdToFilter(category.id);
+    if (!filter) return;
+    setActiveFilter(filter);
+    setSelectedCategory(category.id);
     setQuery('');
   }, []);
 
@@ -94,7 +102,9 @@ export default function SearchScreen() {
   );
 
   const handleFilterChange = useCallback((label: string) => {
-    setActiveFilter(filterLabelToId(label));
+    const next = filterLabelToId(label);
+    setActiveFilter(next);
+    setSelectedCategory(filterToCategoryId(next));
   }, []);
 
   const openMap = useCallback(() => {
@@ -191,7 +201,11 @@ export default function SearchScreen() {
           Browse
         </Text>
         <View style={{ paddingHorizontal: horizontalPadding }}>
-          <CategoryGrid categories={categories} onCategoryPress={handleCategoryPress} />
+          <CategoryGrid
+            categories={categories}
+            selectedCategoryId={selectedCategory}
+            onCategoryPress={handleCategoryPress}
+          />
         </View>
 
         {featuredVehicles.length > 0 && !debouncedQuery ? (
@@ -235,6 +249,7 @@ export default function SearchScreen() {
       colors.textPrimary,
       debouncedQuery,
       featuredVehicles,
+      selectedCategory,
       handleCategoryPress,
       handleFilterChange,
       handleVehiclePress,

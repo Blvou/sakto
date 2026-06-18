@@ -1,13 +1,14 @@
 import { View, Text, ScrollView, Pressable, Switch, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
-  Camera,
+  Bike,
+  Bell,
   Calendar,
+  Camera,
   ChevronRight,
   HelpCircle,
+  Inbox,
   LogOut,
-  MapPin,
-  Bell,
   Settings,
   Star,
 } from 'lucide-react-native';
@@ -27,9 +28,9 @@ import { typography } from '@/src/design-system/tokens';
 import { useNotificationsStore } from '@/src/stores/notifications-store';
 
 const MENU_ITEMS = [
-  { icon: MapPin, label: 'My bikes', route: '/my-listings' as const },
+  { icon: Bike, label: 'My bikes', route: '/my-listings' as const },
   { icon: Calendar, label: 'My bookings', route: '/bookings' as const },
-  { icon: Calendar, label: 'Rental requests', route: '/bookings/owner' as const, badgeKey: 'pending' as const },
+  { icon: Inbox, label: 'Rental requests', route: '/bookings/owner' as const, badgeKey: 'pending' as const },
   { icon: Star, label: 'Reviews', route: null },
   { icon: Settings, label: 'Settings', route: null },
   { icon: HelpCircle, label: 'Help & Support', route: null },
@@ -122,7 +123,7 @@ export default function ProfileScreen() {
 
         <View style={{ flexDirection: 'row', marginTop: 16, gap: 12 }}>
           {[
-            { label: 'Bikes', value: String(bikesCount) },
+            { label: 'Listed', value: String(bikesCount) },
             { label: 'Trips', value: String(stats.trips) },
             { label: 'Rating', value: stats.rating != null ? stats.rating.toFixed(1) : '—' },
           ].map((stat) => (
@@ -206,11 +207,6 @@ export default function ProfileScreen() {
                       {badge}
                     </Text>
                   </View>
-                ) : null}
-                {'route' in item && item.route === '/my-listings' && bikesCount > 0 && !badge ? (
-                  <Text style={{ ...typography.caption, color: colors.textSecondary, marginRight: 8 }}>
-                    {bikesCount}
-                  </Text>
                 ) : null}
                 <ChevronRight color={colors.textSecondary} size={18} />
               </Pressable>
