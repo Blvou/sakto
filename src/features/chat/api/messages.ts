@@ -107,22 +107,28 @@ export interface TranslateResponse {
   detectedSourceLang: string;
 }
 
+function isPersistedMessageId(messageId: string): boolean {
+  return !messageId.startsWith('temp-');
+}
+
 export async function translateMessage(
   messageId: string,
   text: string,
   targetLang: PreferredLang,
   _sourceLang?: PreferredLang
 ): Promise<TranslateResponse> {
-  try {
-    const { data, error } = await supabase.functions.invoke<TranslateResponse>('translate', {
-      body: { messageId, text, targetLang },
-    });
+  if (isPersistedMessageId(messageId)) {
+    try {
+      const { data, error } = await supabase.functions.invoke<TranslateResponse>('translate', {
+        body: { messageId, text, targetLang },
+      });
 
-    if (!error && data?.translatedText) {
-      return data;
+      if (!error && data?.translatedText) {
+        return data;
+      }
+    } catch {
+      // Edge Function not deployed or unreachable — use fallback below.
     }
-  } catch {
-    // Edge Function not deployed or unreachable — use fallback below.
   }
 
   return translateWithMyMemory(text, targetLang);

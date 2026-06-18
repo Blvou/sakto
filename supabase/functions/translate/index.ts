@@ -1,4 +1,11 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import {
+  buildLangPairs,
+  detectSourceLangCode,
+  isSameTranslation,
+  isValidMyMemoryResponse,
+  type PreferredLang,
+} from './_shared/translate-utils.ts';
 
 const MAX_TEXT_LENGTH = 500;
 
@@ -10,13 +17,46 @@ const corsHeaders = {
 interface TranslateRequest {
   messageId?: string;
   text: string;
-  targetLang: 'en' | 'tl';
-  sourceLang?: 'en' | 'tl';
+  targetLang: PreferredLang;
 }
 
 interface TranslateResponse {
   translatedText: string;
   detectedSourceLang: string;
+}
+
+async function translateWithMyMemory(
+  text: string,
+  targetLang: PreferredLang
+): Promise<TranslateResponse | null> {
+  const trimmed = text.trim();
+  const detected = detectSourceLangCode(trimmed);
+
+  if (targetLang === 'tl' && detected === 'tl') {
+    return null;
+  }
+
+  const langPairs = buildLangPairs(trimmed, targetLang);
+
+  for (const langpair of langPairs) {
+    const myMemoryUrl =
+      `https://api.mymemory.translated.net/get?q=${encodeURIComponent(trimmed)}&langpair=${langpair}`;
+    const myMemoryRes = await fetch(myMemoryUrl);
+    if (!myMemoryRes.ok) continue;
+
+    const myMemoryData = await myMemoryRes.json();
+    const translatedText = myMemoryData?.responseData?.translatedText?.trim();
+
+    if (
+      isValidMyMemoryResponse(myMemoryData?.responseStatus, translatedText) &&
+      !isSameTranslation(trimmed, translatedText)
+    ) {
+      const [detectedSourceLang] = langpair.split('|');
+      return { translatedText, detectedSourceLang };
+    }
+  }
+
+  return null;
 }
 
 Deno.serve(async (req) => {
@@ -48,7 +88,7 @@ Deno.serve(async (req) => {
     }
 
     const body = (await req.json()) as TranslateRequest;
-    const { messageId, text, targetLang, sourceLang } = body;
+    const { messageId, text, targetLang } = body;
 
     if (!messageId || !text || !targetLang) {
       return new Response(JSON.stringify({ error: 'messageId, text and targetLang are required' }), {
@@ -79,33 +119,18 @@ Deno.serve(async (req) => {
 
     const apiKey = Deno.env.get('GOOGLE_TRANSLATE_API_KEY');
     if (!apiKey) {
-      const detectedSource = sourceLang ?? (targetLang === 'tl' ? 'en' : 'tl');
-      const myMemoryTarget = targetLang === 'tl' ? 'fil' : 'en';
-      const langPairs = [
-        `${detectedSource}|${myMemoryTarget}`,
-        `auto|${myMemoryTarget}`,
-        `ru|${myMemoryTarget}`,
-        `en|${myMemoryTarget}`,
-      ];
+      const myMemoryResult = await translateWithMyMemory(text, targetLang);
+      if (myMemoryResult) {
+        return new Response(JSON.stringify(myMemoryResult), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
 
-      for (const langpair of langPairs) {
-        const myMemoryUrl =
-          `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${langpair}`;
-        const myMemoryRes = await fetch(myMemoryUrl);
-        if (!myMemoryRes.ok) continue;
-
-        const myMemoryData = await myMemoryRes.json();
-        const translatedText = myMemoryData?.responseData?.translatedText?.trim();
-        if (translatedText && translatedText.toLowerCase() !== text.trim().toLowerCase()) {
-          const [detectedSourceLang] = langpair.split('|');
-          const response: TranslateResponse = {
-            translatedText,
-            detectedSourceLang,
-          };
-          return new Response(JSON.stringify(response), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
-        }
+      if (targetLang === 'tl' && detectSourceLangCode(text) === 'tl') {
+        return new Response(JSON.stringify({ error: 'Message is already in Filipino' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
       }
 
       return new Response(JSON.stringify({ error: 'Translation service not configured' }), {
@@ -115,15 +140,12 @@ Deno.serve(async (req) => {
     }
 
     const googleTarget = targetLang === 'tl' ? 'tl' : 'en';
-    const googleSource = sourceLang === 'tl' ? 'tl' : sourceLang === 'en' ? 'en' : undefined;
-
     const params = new URLSearchParams({
       q: text,
       target: googleTarget,
       format: 'text',
       key: apiKey,
     });
-    if (googleSource) params.set('source', googleSource);
 
     const googleRes = await fetch(
       `https://translation.googleapis.com/language/translate/v2?${params.toString()}`,
@@ -141,10 +163,20 @@ Deno.serve(async (req) => {
 
     const googleData = await googleRes.json();
     const translation = googleData?.data?.translations?.[0];
+    const translatedText = translation?.translatedText?.trim();
+
+    if (!translatedText || isSameTranslation(text, translatedText)) {
+      if (targetLang === 'tl') {
+        return new Response(JSON.stringify({ error: 'Message is already in Filipino' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
 
     const response: TranslateResponse = {
-      translatedText: translation?.translatedText ?? text,
-      detectedSourceLang: translation?.detectedSourceLanguage ?? googleSource ?? 'unknown',
+      translatedText: translatedText ?? text,
+      detectedSourceLang: translation?.detectedSourceLanguage ?? 'unknown',
     };
 
     return new Response(JSON.stringify(response), {

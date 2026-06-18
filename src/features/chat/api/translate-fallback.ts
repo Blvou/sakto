@@ -3,9 +3,9 @@ import type { TranslateResponse } from './messages';
 import {
   buildLangPairs,
   detectSourceLangCode,
-  getTargetLangCodes,
   getTargetLangLabel,
   isSameTranslation,
+  isValidMyMemoryResponse,
 } from './translate-utils';
 
 const MAX_TEXT_LENGTH = 500;
@@ -18,12 +18,14 @@ async function fetchMyMemory(text: string, langpair: string): Promise<string> {
   }
 
   const json = (await response.json()) as {
+    responseStatus?: number | string;
+    responseDetails?: string;
     responseData?: { translatedText?: string };
   };
 
   const translatedText = json.responseData?.translatedText?.trim();
-  if (!translatedText) {
-    throw new Error('No translation returned');
+  if (!isValidMyMemoryResponse(json.responseStatus, translatedText)) {
+    throw new Error(json.responseDetails ?? 'No translation returned');
   }
 
   return translatedText;
@@ -40,7 +42,6 @@ export async function translateWithMyMemory(
     throw new Error(`Text exceeds ${MAX_TEXT_LENGTH} characters`);
   }
 
-  const targetCodes = getTargetLangCodes(targetLang);
   const detected = detectSourceLangCode(trimmed);
 
   if (targetLang === 'tl' && detected === 'tl') {

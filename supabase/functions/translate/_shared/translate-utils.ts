@@ -1,5 +1,3 @@
-import type { PreferredLang } from '@/src/lib/database.types';
-
 const CYRILLIC = /[\u0400-\u04FF]/;
 const HIRAGANA_KATAKANA = /[\u3040-\u30FF]/;
 const HANGUL = /[\uAC00-\uD7AF]/;
@@ -18,12 +16,8 @@ const MYMEMORY_ERROR_MARKERS = [
 
 const SOURCE_FALLBACKS = ['en', 'ru', 'ja', 'zh', 'ko', 'vi', 'de', 'es', 'fr'] as const;
 
-/** Sakto chat always translates into Filipino (Tagalog). */
-export function resolveUserTargetLang(_preferredLang?: PreferredLang): PreferredLang {
-  return 'tl';
-}
+export type PreferredLang = 'en' | 'tl';
 
-/** Lightweight script/heuristic detection for MyMemory lang pairs (no external API). */
 export function detectSourceLangCode(text: string): string {
   if (CYRILLIC.test(text)) return 'ru';
   if (HIRAGANA_KATAKANA.test(text)) return 'ja';
@@ -34,7 +28,6 @@ export function detectSourceLangCode(text: string): string {
   return 'en';
 }
 
-/** MyMemory / Google codes for target language (try variants for Tagalog). */
 export function getTargetLangCodes(targetLang: PreferredLang): string[] {
   if (targetLang === 'tl') return ['fil', 'tl'];
   return ['en'];
@@ -59,7 +52,6 @@ export function buildSourceCandidates(text: string): string[] {
   return candidates;
 }
 
-/** Ordered MyMemory lang pairs — detected source first, then common fallbacks. No `auto|` (unsupported). */
 export function buildLangPairs(text: string, targetLang: PreferredLang): string[] {
   const sources = buildSourceCandidates(text);
   const targets = getTargetLangCodes(targetLang);
@@ -101,8 +93,4 @@ export function isValidMyMemoryResponse(
   if (responseStatus !== 200 && responseStatus !== '200') return false;
   if (!translatedText?.trim()) return false;
   return !isMyMemoryErrorText(translatedText);
-}
-
-export function getTargetLangLabel(targetLang: PreferredLang): string {
-  return targetLang === 'tl' ? 'Filipino' : 'English';
 }
