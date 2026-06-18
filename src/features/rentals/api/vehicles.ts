@@ -1,9 +1,8 @@
-import { scooters } from '@/src/features/home/data/mock-data';
+import { DEMO_VEHICLE_IMAGES, DEMO_VEHICLES } from '../data/demo-vehicles';
 import {
   boundingBox,
   haversineDistanceKm,
   hasValidCoordinates,
-  MANILA_DEFAULT_COORDS,
   sortByDistance,
   type MapCoordinates,
 } from '@/src/lib/maps';
@@ -48,6 +47,9 @@ const fallbackVehicleImage = require('../../../../assets/scooters/s1.png');
 
 function getVehiclePhotoSource(path?: string | null) {
   if (!path) return fallbackVehicleImage;
+  if (path.startsWith('https://') || path.startsWith('http://')) {
+    return { uri: path };
+  }
   const { data } = supabase.storage.from('vehicle-photos').getPublicUrl(path);
   return { uri: data.publicUrl };
 }
@@ -81,25 +83,26 @@ function mapVehicleCard(row: VehicleCardRow, options?: MapVehicleCardOptions): V
 }
 
 export function mockVehicleCards(userCoords?: MapCoordinates | null): VehicleCardItem[] {
-  return scooters.map((scooter, index) => {
-    const lat = MANILA_DEFAULT_COORDS.latitude + index * 0.008;
-    const lng = MANILA_DEFAULT_COORDS.longitude + index * 0.006;
+  return DEMO_VEHICLES.map((vehicle) => {
+    const distanceKm = userCoords
+      ? Math.round(
+          haversineDistanceKm(userCoords, { latitude: vehicle.lat, longitude: vehicle.lng }) * 10
+        ) / 10
+      : vehicle.distanceKm;
 
     return {
-      id: scooter.id,
-      title: scooter.model,
-      model: scooter.model,
-      pricePerDay: scooter.pricePerDay,
-      location: 'Manila',
-      lat,
-      lng,
-      distanceKm: userCoords
-        ? Math.round(haversineDistanceKm(userCoords, { latitude: lat, longitude: lng }) * 10) / 10
-        : scooter.distanceKm,
-      image: scooter.image,
-      instant: scooter.instant,
-      rating: scooter.rating,
-      reviewCount: scooter.reviewCount,
+      id: vehicle.mockId,
+      title: vehicle.title,
+      model: vehicle.model,
+      pricePerDay: vehicle.pricePerDay,
+      location: vehicle.location,
+      lat: vehicle.lat,
+      lng: vehicle.lng,
+      distanceKm,
+      image: DEMO_VEHICLE_IMAGES[vehicle.imageKey],
+      instant: vehicle.instant,
+      rating: vehicle.rating,
+      reviewCount: vehicle.reviewCount,
     };
   });
 }

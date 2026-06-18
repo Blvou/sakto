@@ -1,3 +1,5 @@
+import { DEMO_VEHICLE_IMAGES, DEMO_VEHICLES } from '@/src/features/rentals/data/demo-vehicles';
+
 export type ProductImage = number;
 
 export interface Category {
@@ -64,38 +66,16 @@ export const promoBanners: PromoBanner[] = [
   },
 ];
 
-export const scooters: ScooterListing[] = [
-  {
-    id: 's1',
-    model: 'Honda Beat',
-    pricePerDay: 350,
-    rating: 4.8,
-    reviewCount: 120,
-    distanceKm: 1.2,
-    image: require('../../../../assets/scooters/s1.png'),
-    instant: true,
-  },
-  {
-    id: 's2',
-    model: 'Yamaha Mio',
-    pricePerDay: 300,
-    rating: 4.6,
-    reviewCount: 89,
-    distanceKm: 0.8,
-    image: require('../../../../assets/scooters/s2.png'),
-    instant: true,
-  },
-  {
-    id: 's3',
-    model: 'Honda Click',
-    pricePerDay: 400,
-    rating: 4.9,
-    reviewCount: 203,
-    distanceKm: 2.1,
-    image: require('../../../../assets/scooters/s3.png'),
-    instant: false,
-  },
-];
+export const scooters: ScooterListing[] = DEMO_VEHICLES.map((vehicle) => ({
+  id: vehicle.mockId,
+  model: vehicle.title,
+  pricePerDay: vehicle.pricePerDay,
+  rating: vehicle.rating,
+  reviewCount: vehicle.reviewCount,
+  distanceKm: vehicle.distanceKm,
+  image: DEMO_VEHICLE_IMAGES[vehicle.imageKey],
+  instant: vehicle.instant,
+}));
 
 export function formatPrice(amount: number): string {
   return `₱${amount.toLocaleString('en-PH')}`;
