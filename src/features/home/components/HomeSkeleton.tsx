@@ -45,16 +45,9 @@ export function HomeSkeleton() {
 
       <View style={{ paddingHorizontal: horizontalPadding, marginTop: 24 }}>
         <Skeleton width={scale(160)} height={18} borderRadius={4} style={{ marginBottom: 16 }} />
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton
-              key={i}
-              width={contentWidth / 2 - 8}
-              height={scale(200)}
-              borderRadius={12}
-              style={{ marginBottom: 16 }}
-            />
-          ))}
+        <View style={{ flexDirection: 'row', gap: 12 }}>
+          <Skeleton width={scooterCardWidth} height={scooterImageHeight + scale(100)} borderRadius={12} />
+          <Skeleton width={scooterCardWidth} height={scooterImageHeight + scale(100)} borderRadius={12} />
         </View>
       </View>
     </View>

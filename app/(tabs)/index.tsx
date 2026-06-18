@@ -1,28 +1,21 @@
 import { useCallback, useMemo, useState } from 'react';
-import { RefreshControl, View } from 'react-native';
+import { Pressable, RefreshControl, View } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/src/hooks/use-theme';
 import { useResponsive } from '@/src/hooks/use-responsive';
-import { Fab, FabBackdrop, FabSheet } from '@/src/design-system/components/Fab';
+import { Fab } from '@/src/design-system/components/Fab';
 import { Skeleton } from '@/src/design-system/components/Skeleton';
 import { HomeHeader } from '@/src/features/home/components/HomeHeader';
 import { SearchBar } from '@/src/features/home/components/SearchBar';
 import { PromoCarousel } from '@/src/features/home/components/PromoCarousel';
 import { CategoryGrid } from '@/src/features/home/components/CategoryGrid';
-import { ScooterSection } from '@/src/features/home/components/ScooterSection';
-import {
-  ListingCard,
-  ListingFilters,
-} from '@/src/features/home/components/ListingGrid';
-import { useListings } from '@/src/features/listings/hooks/use-listings';
-import type { ListingCardItem } from '@/src/features/listings/types';
+import { ScooterSection, VehicleGridCard } from '@/src/features/home/components/ScooterSection';
+import { VehicleFilters } from '@/src/features/home/components/VehicleFilters';
 import type { Category } from '@/src/features/home/data/mock-data';
-import {
-  categories,
-  promoBanners,
-} from '@/src/features/home/data/mock-data';
+import { categories, promoBanners } from '@/src/features/home/data/mock-data';
 import { useVehicles } from '@/src/features/rentals/hooks/use-vehicles';
+import type { VehicleCardItem } from '@/src/features/rentals/types';
 
 function ScooterRowSkeleton({ cardWidth, imageHeight }: { cardWidth: number; imageHeight: number }) {
   return (
@@ -33,7 +26,7 @@ function ScooterRowSkeleton({ cardWidth, imageHeight }: { cardWidth: number; ima
   );
 }
 
-function ListingGridSkeleton({
+function VehicleGridSkeleton({
   cardWidth,
   scale,
 }: {
@@ -62,40 +55,34 @@ export default function HomeScreen() {
     useResponsive();
 
   const {
-    listings,
-    isLoading: listingsLoading,
-    refetch,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-  } = useListings();
-  const {
     vehicles,
     isLoading: vehiclesLoading,
     refetch: refetchVehicles,
-  } = useVehicles({ limit: 10 });
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useVehicles();
 
   const [refreshing, setRefreshing] = useState(false);
-  const [fabOpen, setFabOpen] = useState(false);
-  const [activeFilter, setActiveFilter] = useState('New');
   const [quickFilter, setQuickFilter] = useState('Nearby');
+  const [activeFilter, setActiveFilter] = useState('Nearby');
 
-  const showScooterSkeleton = vehiclesLoading && vehicles.length === 0;
-  const showListingSkeleton = listingsLoading && listings.length === 0;
+  const featuredVehicles = useMemo(() => vehicles.slice(0, 10), [vehicles]);
+  const popularVehicles = useMemo(() => vehicles.slice(2), [vehicles]);
+
+  const showFeaturedSkeleton = vehiclesLoading && featuredVehicles.length === 0;
+  const showPopularSkeleton = vehiclesLoading && popularVehicles.length === 0;
   const scooterImageHeight = Math.round(scooterCardWidth * (120 / 180));
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await Promise.all([refetch(), refetchVehicles()]);
+    await refetchVehicles();
     setRefreshing(false);
-  }, [refetch, refetchVehicles]);
+  }, [refetchVehicles]);
 
-  const handleListingPress = useCallback(
-    (id: string) => {
-      router.push(`/listing/${id}`);
-    },
-    [router]
-  );
+  const handleSearchFocus = useCallback(() => {
+    router.push('/(tabs)/search');
+  }, [router]);
 
   const handleChatPress = useCallback(() => {
     router.push('/(tabs)/chat');
@@ -103,12 +90,12 @@ export default function HomeScreen() {
 
   const handleCategoryPress = useCallback(
     (cat: Category) => {
-      if (cat.id === 'scooters') router.push('/(tabs)/search');
+      router.push({ pathname: '/(tabs)/search', params: { category: cat.id } });
     },
     [router]
   );
 
-  const handleScooterPress = useCallback(
+  const handleVehiclePress = useCallback(
     (id: string) => {
       router.push(`/scooter/${id}`);
     },
@@ -121,52 +108,51 @@ export default function HomeScreen() {
     }
   }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
-  const keyExtractor = useCallback((item: ListingCardItem) => item.id, []);
+  const keyExtractor = useCallback((item: VehicleCardItem) => item.id, []);
 
   const renderItem = useCallback(
-    ({ item }: { item: ListingCardItem }) => (
-      <ListingCard
-        listing={item}
-        cardWidth={cardWidth}
-        onPress={handleListingPress}
-      />
+    ({ item }: { item: VehicleCardItem }) => (
+      <VehicleGridCard vehicle={item} cardWidth={cardWidth} onPress={handleVehiclePress} />
     ),
-    [cardWidth, handleListingPress]
+    [cardWidth, handleVehiclePress]
   );
 
   const listHeader = useMemo(
     () => (
       <View>
-        <SearchBar activeFilter={quickFilter} onFilterPress={setQuickFilter} />
+        <PressableSearchBar
+          activeFilter={quickFilter}
+          onFilterPress={setQuickFilter}
+          onPress={handleSearchFocus}
+        />
         <PromoCarousel banners={promoBanners} />
         <CategoryGrid categories={categories} onCategoryPress={handleCategoryPress} />
-        {showScooterSkeleton ? (
+        {showFeaturedSkeleton ? (
           <View style={{ marginTop: 8, marginBottom: 16 }}>
             <Skeleton width={scale(200)} height={18} borderRadius={4} style={{ marginBottom: 12 }} />
             <ScooterRowSkeleton cardWidth={scooterCardWidth} imageHeight={scooterImageHeight} />
           </View>
-        ) : (
+        ) : featuredVehicles.length > 0 ? (
           <ScooterSection
-            scooters={vehicles}
+            scooters={featuredVehicles}
             onSeeAll={() => router.push('/(tabs)/search')}
-            onScooterPress={handleScooterPress}
+            onScooterPress={handleVehiclePress}
           />
-        )}
-        <ListingFilters activeFilter={activeFilter} onFilterChange={setActiveFilter} />
-        {showListingSkeleton ? (
-          <ListingGridSkeleton cardWidth={cardWidth} scale={scale} />
         ) : null}
+        <VehicleFilters activeFilter={activeFilter} onFilterChange={setActiveFilter} />
+        {showPopularSkeleton ? <VehicleGridSkeleton cardWidth={cardWidth} scale={scale} /> : null}
       </View>
     ),
     [
       quickFilter,
       activeFilter,
       handleCategoryPress,
-      handleScooterPress,
-      vehicles,
+      handleVehiclePress,
+      handleSearchFocus,
+      featuredVehicles,
       router,
-      showScooterSkeleton,
-      showListingSkeleton,
+      showFeaturedSkeleton,
+      showPopularSkeleton,
       scooterCardWidth,
       scooterImageHeight,
       cardWidth,
@@ -175,20 +161,20 @@ export default function HomeScreen() {
   );
 
   const listEmptyComponent = useMemo(() => {
-    if (showListingSkeleton || listings.length > 0) return null;
+    if (showPopularSkeleton || popularVehicles.length > 0) return null;
     return (
       <View style={{ paddingVertical: 24, alignItems: 'center' }}>
         <Skeleton width={cardWidth} height={scale(200)} borderRadius={12} />
       </View>
     );
-  }, [showListingSkeleton, listings.length, cardWidth, scale]);
+  }, [showPopularSkeleton, popularVehicles.length, cardWidth, scale]);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <HomeHeader onChatPress={handleChatPress} />
 
       <FlashList
-        data={showListingSkeleton ? [] : listings}
+        data={showPopularSkeleton ? [] : popularVehicles}
         numColumns={2}
         keyExtractor={keyExtractor}
         renderItem={renderItem}
@@ -204,14 +190,28 @@ export default function HomeScreen() {
         onEndReachedThreshold={0.5}
       />
 
-      <FabBackdrop visible={fabOpen} onPress={() => setFabOpen(false)} />
-      <Fab onPress={() => setFabOpen(true)} />
-      <FabSheet
-        visible={fabOpen}
-        onClose={() => setFabOpen(false)}
-        onSellItem={() => router.push('/publish')}
-        onRentScooter={() => router.push('/publish?type=scooter')}
+      <Fab
+        onPress={() => router.push('/publish?type=scooter')}
+        accessibilityLabel="List a bike"
       />
     </View>
+  );
+}
+
+function PressableSearchBar({
+  activeFilter,
+  onFilterPress,
+  onPress,
+}: {
+  activeFilter: string;
+  onFilterPress: (filter: string) => void;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable onPress={onPress}>
+      <View pointerEvents="none">
+        <SearchBar activeFilter={activeFilter} onFilterPress={onFilterPress} />
+      </View>
+    </Pressable>
   );
 }

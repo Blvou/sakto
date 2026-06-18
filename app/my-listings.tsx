@@ -5,19 +5,13 @@ import { ArrowLeft } from 'lucide-react-native';
 import { useTheme } from '@/src/hooks/use-theme';
 import { typography } from '@/src/design-system/tokens';
 import { formatPrice } from '@/src/features/home/data/mock-data';
-import { useMyListings } from '@/src/features/listings/hooks/use-my-listings';
-import type { MyListingItem } from '@/src/features/listings/types';
+import { useMyVehicles } from '@/src/features/rentals/hooks/use-my-vehicles';
+import type { VehicleCardItem } from '@/src/features/rentals/types';
 
-const STATUS_LABELS: Record<MyListingItem['status'], string> = {
-  active: 'Active',
-  sold: 'Sold',
-  archived: 'Archived',
-};
-
-export default function MyListingsScreen() {
+export default function MyBikesScreen() {
   const { colors } = useTheme();
   const router = useRouter();
-  const { data: listings, isLoading, isError, refetch, isRefetching } = useMyListings();
+  const { data: vehicles = [], isLoading, isError, refetch, isRefetching } = useMyVehicles();
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -39,7 +33,7 @@ export default function MyListingsScreen() {
           <ArrowLeft color={colors.textPrimary} size={24} />
         </Pressable>
         <Text style={{ ...typography.h2, color: colors.textPrimary, flex: 1, textAlign: 'center' }}>
-          My listings
+          My bikes
         </Text>
         <View style={{ width: 44 }} />
       </View>
@@ -51,7 +45,7 @@ export default function MyListingsScreen() {
       ) : isError ? (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
           <Text style={{ ...typography.body, color: colors.textSecondary, textAlign: 'center' }}>
-            Could not load your listings
+            Could not load your bikes
           </Text>
           <Pressable onPress={() => refetch()} style={{ marginTop: 16 }}>
             <Text style={{ ...typography.body, color: colors.primary, fontFamily: 'PlusJakartaSans_600SemiBold' }}>
@@ -61,7 +55,7 @@ export default function MyListingsScreen() {
         </View>
       ) : (
         <FlatList
-          data={listings}
+          data={vehicles}
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ padding: 16, paddingBottom: 32, flexGrow: 1 }}
           refreshing={isRefetching}
@@ -69,18 +63,18 @@ export default function MyListingsScreen() {
           ListEmptyComponent={
             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 80 }}>
               <Text style={{ ...typography.body, color: colors.textSecondary, textAlign: 'center' }}>
-                You have no listings yet
+                You have no bikes listed yet
               </Text>
-              <Pressable onPress={() => router.push('/publish')} style={{ marginTop: 16 }}>
+              <Pressable onPress={() => router.push('/publish?type=scooter')} style={{ marginTop: 16 }}>
                 <Text style={{ ...typography.body, color: colors.primary, fontFamily: 'PlusJakartaSans_600SemiBold' }}>
-                  Create your first listing
+                  List your first bike
                 </Text>
               </Pressable>
             </View>
           }
-          renderItem={({ item }) => (
+          renderItem={({ item }: { item: VehicleCardItem }) => (
             <Pressable
-              onPress={() => router.push(`/listing/${item.id}`)}
+              onPress={() => router.push(`/scooter/${item.id}`)}
               style={{
                 flexDirection: 'row',
                 padding: 12,
@@ -106,38 +100,31 @@ export default function MyListingsScreen() {
                   {item.title}
                 </Text>
                 <Text style={{ ...typography.priceSm, color: colors.primary, marginTop: 4 }}>
-                  {formatPrice(item.price)}
+                  {formatPrice(item.pricePerDay)}
+                  <Text style={{ ...typography.caption, color: colors.textSecondary }}>/day</Text>
                 </Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 8 }}>
                   <Text style={{ ...typography.caption, color: colors.textSecondary }}>{item.location}</Text>
-                  <View
-                    style={{
-                      paddingHorizontal: 8,
-                      paddingVertical: 2,
-                      borderRadius: 6,
-                      backgroundColor:
-                        item.status === 'active'
-                          ? '#E8F9EF'
-                          : item.status === 'sold'
-                            ? '#FFF3E0'
-                            : colors.border,
-                    }}
-                  >
-                    <Text
+                  {item.instant ? (
+                    <View
                       style={{
-                        ...typography.caption,
-                        color:
-                          item.status === 'active'
-                            ? colors.success
-                            : item.status === 'sold'
-                              ? '#E65100'
-                              : colors.textSecondary,
-                        fontFamily: 'PlusJakartaSans_600SemiBold',
+                        paddingHorizontal: 8,
+                        paddingVertical: 2,
+                        borderRadius: 6,
+                        backgroundColor: '#E8F9EF',
                       }}
                     >
-                      {STATUS_LABELS[item.status]}
-                    </Text>
-                  </View>
+                      <Text
+                        style={{
+                          ...typography.caption,
+                          color: colors.success,
+                          fontFamily: 'PlusJakartaSans_600SemiBold',
+                        }}
+                      >
+                        Instant
+                      </Text>
+                    </View>
+                  ) : null}
                 </View>
               </View>
             </Pressable>

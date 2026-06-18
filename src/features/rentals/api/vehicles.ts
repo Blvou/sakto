@@ -217,4 +217,27 @@ export async function fetchVehicleBlockedDates(
   return (data ?? []) as string[];
 }
 
+export async function fetchMyVehicles(ownerId: string): Promise<VehicleCardItem[]> {
+  const { data, error } = await supabase
+    .from('vehicles')
+    .select(
+      `
+      id,
+      title,
+      model,
+      price_per_day,
+      location,
+      instant_booking,
+      created_at,
+      photos:vehicle_photos ( storage_path, sort_order )
+    `
+    )
+    .eq('owner_id', ownerId)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+
+  return ((data ?? []) as unknown as VehicleCardRow[]).map(mapVehicleCard);
+}
+
 export { getVehiclePhotoSource };

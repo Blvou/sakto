@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { isSupabaseConfigured } from '@/src/lib/supabase';
-import { listings as mockListings } from '@/src/features/home/data/mock-data';
+import { DEMO_LISTINGS } from '../api/listings';
 import { fetchListingById } from '../api/listings';
 import { listingQueryKeys } from '../types';
 import { formatTimeAgo } from '../utils/format-time-ago';
@@ -12,7 +12,7 @@ export function useListing(id: string | undefined) {
       if (!id) return null;
 
       if (!isSupabaseConfigured) {
-        const mock = mockListings.find((l) => l.id === id);
+        const mock = DEMO_LISTINGS.find((listing) => listing.id === id);
         if (!mock) return null;
         return {
           id: mock.id,

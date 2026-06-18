@@ -1,76 +1,56 @@
 import { View, Text, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Plus, Package, Bike } from 'lucide-react-native';
+import { Plus, Bike } from 'lucide-react-native';
 import { useTheme } from '@/src/hooks/use-theme';
 import { useCardStyle } from '@/src/design-system/use-card-style';
 import { typography } from '@/src/design-system/tokens';
 
-export default function SellScreen() {
+export default function RentOutScreen() {
   const { colors } = useTheme();
   const cardLgStyle = useCardStyle({ borderRadius: 16 });
   const router = useRouter();
 
-  const options = [
-    {
-      icon: Package,
-      title: 'Sell an item',
-      description: 'List used goods on the marketplace',
-      route: '/publish' as const,
-      color: colors.primary,
-    },
-    {
-      icon: Bike,
-      title: 'List a scooter',
-      description: 'Rent out your scooter or motorcycle',
-      route: '/publish?type=scooter' as const,
-      color: colors.secondary,
-    },
-  ];
-
   return (
     <View style={{ flex: 1, backgroundColor: colors.background, paddingTop: 56 }}>
       <View style={{ paddingHorizontal: 16, marginBottom: 24 }}>
-        <Text style={{ ...typography.h1, color: colors.textPrimary }}>Sell / Rent</Text>
+        <Text style={{ ...typography.h1, color: colors.textPrimary }}>Rent out</Text>
         <Text style={{ ...typography.body, color: colors.textSecondary, marginTop: 4 }}>
-          What would you like to list?
+          List your bike or scooter for others to rent
         </Text>
       </View>
 
-      <View style={{ paddingHorizontal: 16, gap: 12 }}>
-        {options.map((opt) => (
-          <Pressable
-            key={opt.title}
-            onPress={() => router.push(opt.route)}
+      <View style={{ paddingHorizontal: 16 }}>
+        <Pressable
+          onPress={() => router.push('/publish?type=scooter')}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            padding: 20,
+            minHeight: 88,
+            ...cardLgStyle,
+          }}
+        >
+          <View
             style={{
-              flexDirection: 'row',
+              width: 48,
+              height: 48,
+              borderRadius: 24,
+              backgroundColor: `${colors.secondary}15`,
               alignItems: 'center',
-              padding: 20,
-              minHeight: 88,
-              ...cardLgStyle,
+              justifyContent: 'center',
+              marginRight: 16,
             }}
           >
-            <View
-              style={{
-                width: 48,
-                height: 48,
-                borderRadius: 24,
-                backgroundColor: `${opt.color}15`,
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginRight: 16,
-              }}
-            >
-              <opt.icon color={opt.color} size={24} strokeWidth={1.5} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={{ ...typography.h3, color: colors.textPrimary }}>{opt.title}</Text>
-              <Text style={{ ...typography.caption, color: colors.textSecondary, marginTop: 2 }}>
-                {opt.description}
-              </Text>
-            </View>
-            <Plus color={colors.textSecondary} size={20} />
-          </Pressable>
-        ))}
+            <Bike color={colors.secondary} size={24} strokeWidth={1.5} />
+          </View>
+          <View style={{ flex: 1, marginLeft: 16 }}>
+            <Text style={{ ...typography.h3, color: colors.textPrimary }}>List your bike</Text>
+            <Text style={{ ...typography.caption, color: colors.textSecondary, marginTop: 2 }}>
+              Scooter or motorcycle — set your daily rate and availability
+            </Text>
+          </View>
+          <Plus color={colors.textSecondary} size={20} />
+        </Pressable>
       </View>
     </View>
   );

@@ -1,4 +1,3 @@
-import { listings as mockListings } from '@/src/features/home/data/mock-data';
 import { resolveListingCategoryId } from '@/src/features/listings/constants/categories';
 import { supabase } from '@/src/lib/supabase';
 import { getClientStorage } from '@/src/lib/storage';
@@ -70,15 +69,14 @@ function toCardItem(row: ListingRow, badge?: ListingCardItem['badge']): ListingC
 }
 
 function mockToCardItems(): ListingCardItem[] {
-  return mockListings.map((listing) => ({
+  return DEMO_LISTINGS.map((listing, index) => ({
     id: listing.id,
     title: listing.title,
     price: listing.price,
     location: listing.location,
-    timeAgo: listing.timeAgo,
-    image: listing.image,
+    timeAgo: `${index + 1}h ago`,
+    image: resolveListingImage(listing.id, null),
     category: resolveListingCategoryId(listing.id, null),
-    badge: listing.badge,
   }));
 }
 
@@ -107,9 +105,8 @@ export async function fetchListingsPage(
     return { items: [], nextCursor: undefined };
   }
 
-  const mockBadgeMap = new Map(mockListings.map((l) => [l.id, l.badge]));
   const rows = data as ListingRow[];
-  const items = rows.map((row) => toCardItem(row, mockBadgeMap.get(row.id)));
+  const items = rows.map((row) => toCardItem(row));
   const last = rows[rows.length - 1];
 
   return {

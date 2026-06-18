@@ -36,7 +36,7 @@ export function Fab({ onPress, style, ...props }: FabProps) {
         typeof style === 'function' ? style(state) : style,
       ]}
       accessibilityRole="button"
-      accessibilityLabel="Create listing"
+      accessibilityLabel="List a bike"
       {...props}
     >
       <Plus color="#FFFFFF" size={24} strokeWidth={2} />
@@ -66,22 +66,15 @@ export function FabBackdrop({ visible, onPress }: { visible: boolean; onPress: (
 export function FabSheet({
   visible,
   onClose,
-  onSellItem,
-  onRentScooter,
+  onListBike,
 }: {
   visible: boolean;
   onClose: () => void;
-  onSellItem: () => void;
-  onRentScooter: () => void;
+  onListBike: () => void;
 }) {
   const { colors, isDark } = useTheme();
 
   if (!visible) return null;
-
-  const options = [
-    { label: 'Sell an item', emoji: '📦', onPress: onSellItem },
-    { label: 'List a scooter', emoji: '🛵', onPress: onRentScooter },
-  ];
 
   return (
     <View
@@ -117,34 +110,31 @@ export function FabSheet({
             marginBottom: 20,
           }}
         />
-        {options.map((opt) => (
-          <Pressable
-            key={opt.label}
-            onPress={() => {
-              onClose();
-              opt.onPress();
+        <Pressable
+          onPress={() => {
+            onClose();
+            onListBike();
+          }}
+          style={({ pressed }) => ({
+            flexDirection: 'row',
+            alignItems: 'center',
+            paddingVertical: 16,
+            paddingHorizontal: 4,
+            minHeight: 56,
+            opacity: pressed ? 0.7 : 1,
+          })}
+        >
+          <Text style={{ fontSize: 28, marginRight: 16 }}>🛵</Text>
+          <Text
+            style={{
+              fontSize: 16,
+              fontFamily: 'PlusJakartaSans_600SemiBold',
+              color: colors.textPrimary,
             }}
-            style={({ pressed }) => ({
-              flexDirection: 'row',
-              alignItems: 'center',
-              paddingVertical: 16,
-              paddingHorizontal: 4,
-              minHeight: 56,
-              opacity: pressed ? 0.7 : 1,
-            })}
           >
-            <Text style={{ fontSize: 28, marginRight: 16 }}>{opt.emoji}</Text>
-            <Text
-              style={{
-                fontSize: 16,
-                fontFamily: 'PlusJakartaSans_600SemiBold',
-                color: colors.textPrimary,
-              }}
-            >
-              {opt.label}
-            </Text>
-          </Pressable>
-        ))}
+            List a bike
+          </Text>
+        </Pressable>
         <Pressable
           onPress={onClose}
           style={{

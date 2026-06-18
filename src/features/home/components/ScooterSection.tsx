@@ -1,89 +1,26 @@
 import { memo, useCallback } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
-import { Image } from 'expo-image';
-import { MapPin, Star } from 'lucide-react-native';
 import { useTheme } from '@/src/hooks/use-theme';
 import { useResponsive } from '@/src/hooks/use-responsive';
-import { useCardStyle } from '@/src/design-system/use-card-style';
 import { typography } from '@/src/design-system/tokens';
-import { Badge } from '@/src/design-system/components/Badge';
+import { VehicleCard } from '@/src/features/rentals/components/VehicleCard';
 import type { VehicleCardItem } from '@/src/features/rentals/types';
-import { formatPrice } from '../data/mock-data';
 
 const SCOOTER_GAP = 12;
-
-interface ScooterCardProps {
-  scooter: VehicleCardItem;
-  cardWidth: number;
-  imageHeight: number;
-  onPress?: (id: string) => void;
-}
-
-const ScooterCard = memo(function ScooterCard({
-  scooter,
-  cardWidth,
-  imageHeight,
-  onPress,
-}: ScooterCardProps) {
-  const { colors } = useTheme();
-  const cardStyle = useCardStyle();
-  const handlePress = useCallback(() => onPress?.(scooter.id), [onPress, scooter.id]);
-
-  return (
-    <Pressable
-      onPress={handlePress}
-      style={{
-        width: cardWidth,
-        ...cardStyle,
-        overflow: 'hidden',
-      }}
-    >
-      <Image
-        source={scooter.image}
-        style={{ width: cardWidth, height: imageHeight }}
-        contentFit="cover"
-        transition={200}
-      />
-      <View style={{ padding: 12 }}>
-        <Text
-          style={{ ...typography.body, fontFamily: 'PlusJakartaSans_600SemiBold', color: colors.textPrimary }}
-          numberOfLines={1}
-        >
-          {scooter.title}
-        </Text>
-        <Text style={{ ...typography.price, color: colors.primary, marginTop: 4 }}>
-          {formatPrice(scooter.pricePerDay)}
-          <Text style={{ ...typography.caption, color: colors.textSecondary }}>/day</Text>
-        </Text>
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6, gap: 4 }}>
-          <Star color="#FFB800" size={12} fill="#FFB800" />
-          <Text style={{ ...typography.caption, color: colors.textSecondary }}>
-            {scooter.rating?.toFixed(1) ?? 'New'} ({scooter.reviewCount})
-          </Text>
-        </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 2 }}>
-          <MapPin color={colors.textSecondary} size={11} />
-          <Text style={{ ...typography.caption, color: colors.textSecondary }}>
-            {scooter.distanceKm === null ? scooter.location : `${scooter.distanceKm} km`}
-          </Text>
-        </View>
-        {scooter.instant && (
-          <View style={{ marginTop: 8 }}>
-            <Badge label="Instant" variant="success" />
-          </View>
-        )}
-      </View>
-    </Pressable>
-  );
-});
 
 interface ScooterSectionProps {
   scooters: VehicleCardItem[];
   onSeeAll?: () => void;
   onScooterPress?: (id: string) => void;
+  title?: string;
 }
 
-export function ScooterSection({ scooters, onSeeAll, onScooterPress }: ScooterSectionProps) {
+export function ScooterSection({
+  scooters,
+  onSeeAll,
+  onScooterPress,
+  title = '🛵 Featured bikes nearby',
+}: ScooterSectionProps) {
   const { colors } = useTheme();
   const { scooterCardWidth, horizontalPadding, scale, isSmallScreen } = useResponsive();
   const imageHeight = Math.round(scooterCardWidth * (120 / 180));
@@ -109,13 +46,15 @@ export function ScooterSection({ scooters, onSeeAll, onScooterPress }: ScooterSe
           }}
           numberOfLines={2}
         >
-          🛵 Rent a scooter nearby
+          {title}
         </Text>
-        <Pressable onPress={onSeeAll} hitSlop={8} style={{ flexShrink: 0 }}>
-          <Text style={{ ...typography.caption, color: colors.primary, fontFamily: 'PlusJakartaSans_600SemiBold' }}>
-            See all →
-          </Text>
-        </Pressable>
+        {onSeeAll ? (
+          <Pressable onPress={onSeeAll} hitSlop={8} style={{ flexShrink: 0 }}>
+            <Text style={{ ...typography.caption, color: colors.primary, fontFamily: 'PlusJakartaSans_600SemiBold' }}>
+              See all →
+            </Text>
+          </Pressable>
+        ) : null}
       </View>
 
       <ScrollView
@@ -127,9 +66,9 @@ export function ScooterSection({ scooters, onSeeAll, onScooterPress }: ScooterSe
         snapToInterval={snapInterval}
       >
         {scooters.map((scooter) => (
-          <ScooterCard
+          <VehicleCard
             key={scooter.id}
-            scooter={scooter}
+            vehicle={scooter}
             cardWidth={scooterCardWidth}
             imageHeight={imageHeight}
             onPress={onScooterPress}
@@ -139,3 +78,19 @@ export function ScooterSection({ scooters, onSeeAll, onScooterPress }: ScooterSe
     </View>
   );
 }
+
+export const VehicleGridCard = memo(function VehicleGridCard({
+  vehicle,
+  cardWidth,
+  onPress,
+}: {
+  vehicle: VehicleCardItem;
+  cardWidth: number;
+  onPress?: (id: string) => void;
+}) {
+  const handlePress = useCallback(() => onPress?.(vehicle.id), [onPress, vehicle.id]);
+
+  return (
+    <VehicleCard vehicle={vehicle} cardWidth={cardWidth} onPress={handlePress} />
+  );
+});

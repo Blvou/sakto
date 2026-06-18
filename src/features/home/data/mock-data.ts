@@ -18,17 +18,6 @@ export interface ScooterListing {
   instant: boolean;
 }
 
-export interface MarketplaceListing {
-  id: string;
-  title: string;
-  price: number;
-  location: string;
-  timeAgo: string;
-  image: ProductImage;
-  badge?: 'urgent' | 'top';
-  liked?: boolean;
-}
-
 export interface PromoBanner {
   id: string;
   title: string;
@@ -38,14 +27,12 @@ export interface PromoBanner {
 }
 
 export const categories: Category[] = [
-  { id: 'scooters', label: 'Scooters', emoji: '🛵', highlight: true },
-  { id: 'electronics', label: 'Electronics', emoji: '📱' },
-  { id: 'clothing', label: 'Clothing', emoji: '👕' },
-  { id: 'home', label: 'Home', emoji: '🏠' },
-  { id: 'auto', label: 'Auto', emoji: '🚗' },
-  { id: 'jobs', label: 'Jobs', emoji: '💼' },
-  { id: 'games', label: 'Games', emoji: '🎮' },
-  { id: 'more', label: 'More', emoji: '⚡' },
+  { id: 'nearby', label: 'Nearby', emoji: '📍', highlight: true },
+  { id: 'electric', label: 'Electric', emoji: '⚡' },
+  { id: 'manual', label: 'Manual', emoji: '🛵' },
+  { id: 'hourly', label: 'By hour', emoji: '⏱️' },
+  { id: 'daily', label: 'By day', emoji: '📅' },
+  { id: 'popular', label: 'Popular', emoji: '🔥' },
 ];
 
 export const promoBanners: PromoBanner[] = [
@@ -58,15 +45,15 @@ export const promoBanners: PromoBanner[] = [
   },
   {
     id: '2',
-    title: 'Sell faster',
-    subtitle: 'Boost your listing for ₱49',
+    title: 'List your bike',
+    subtitle: 'Earn ₱300–500/day renting out',
     backgroundColor: '#FF6B00',
     textColor: '#FFFFFF',
   },
   {
     id: '3',
-    title: 'Verified sellers',
-    subtitle: 'Shop with confidence',
+    title: 'Verified hosts',
+    subtitle: 'Rent with confidence',
     backgroundColor: '#00C853',
     textColor: '#FFFFFF',
   },
@@ -102,60 +89,6 @@ export const scooters: ScooterListing[] = [
     distanceKm: 2.1,
     image: require('../../../../assets/scooters/s3.png'),
     instant: false,
-  },
-];
-
-export const listings: MarketplaceListing[] = [
-  {
-    id: 'a0000000-0000-4000-8000-000000000001',
-    title: 'iPhone 13 Pro 128GB — Space Gray',
-    price: 25000,
-    location: 'Makati',
-    timeAgo: '2h ago',
-    image: require('../../../../assets/listings/l1.png'),
-    badge: 'top',
-  },
-  {
-    id: 'a0000000-0000-4000-8000-000000000002',
-    title: 'Nike Air Max 90 — Size 42',
-    price: 3500,
-    location: 'Quezon City',
-    timeAgo: '5h ago',
-    image: require('../../../../assets/listings/l2.png'),
-    badge: 'urgent',
-  },
-  {
-    id: 'a0000000-0000-4000-8000-000000000003',
-    title: 'IKEA Kallax Shelf — White',
-    price: 4500,
-    location: 'Pasig',
-    timeAgo: '1d ago',
-    image: require('../../../../assets/listings/l3.png'),
-  },
-  {
-    id: 'a0000000-0000-4000-8000-000000000004',
-    title: 'PS5 DualSense Controller',
-    price: 2200,
-    location: 'Manila',
-    timeAgo: '3h ago',
-    image: require('../../../../assets/listings/l4.png'),
-  },
-  {
-    id: 'a0000000-0000-4000-8000-000000000005',
-    title: 'Samsung Galaxy A54 5G',
-    price: 12000,
-    location: 'Taguig',
-    timeAgo: '6h ago',
-    image: require('../../../../assets/listings/l5.png'),
-    badge: 'top',
-  },
-  {
-    id: 'a0000000-0000-4000-8000-000000000006',
-    title: 'Vintage Denim Jacket — M',
-    price: 800,
-    location: 'Cebu City',
-    timeAgo: '12h ago',
-    image: require('../../../../assets/listings/l6.png'),
   },
 ];
 

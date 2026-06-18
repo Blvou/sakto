@@ -5,7 +5,7 @@ import { useResponsive } from '@/src/hooks/use-responsive';
 import { useCardStyle } from '@/src/design-system/use-card-style';
 import { Chip } from '@/src/design-system/components/Chip';
 
-const QUICK_FILTERS = ['Nearby', 'New', 'Under ₱1000'];
+const QUICK_FILTERS = ['Nearby', 'Electric', 'Manual', 'By day'];
 
 interface SearchBarProps {
   value?: string;
@@ -41,7 +41,7 @@ export function SearchBar({
         <TextInput
           value={value}
           onChangeText={onChangeText}
-          placeholder={isSmallScreen ? 'Search...' : 'Search items, scooters, services...'}
+          placeholder={isSmallScreen ? 'Search bikes...' : 'Search bikes near you...'}
           placeholderTextColor={colors.textSecondary}
           style={{
             flex: 1,

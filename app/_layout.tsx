@@ -74,7 +74,7 @@ function RootLayoutNav() {
       />
       <Stack.Screen
         name="my-listings"
-        options={{ title: 'My Listings', presentation: 'card', headerShown: false }}
+        options={{ title: 'My Bikes', presentation: 'card', headerShown: false }}
       />
       <Stack.Screen
         name="bookings/index"
@@ -90,7 +90,7 @@ function RootLayoutNav() {
       />
       <Stack.Screen
         name="publish/index"
-        options={{ title: 'Create Listing', presentation: 'modal', headerShown: false }}
+        options={{ title: 'List a Bike', presentation: 'modal', headerShown: false }}
       />
       <Stack.Screen name="(auth)" options={{ headerShown: false }} />
       <Stack.Screen

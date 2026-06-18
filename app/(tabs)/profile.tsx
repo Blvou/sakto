@@ -4,7 +4,6 @@ import {
   Camera,
   Calendar,
   ChevronRight,
-  Heart,
   HelpCircle,
   LogOut,
   MapPin,
@@ -22,12 +21,11 @@ import { Avatar } from '@/src/design-system/components/Avatar';
 import { useMyProfile } from '@/src/features/profile/hooks/use-my-profile';
 import { ImageCropModal } from '@/src/features/media/components/ImageCropModal';
 import { useUploadAvatar } from '@/src/features/profile/hooks/use-upload-avatar';
-import { useListingStats } from '@/src/features/listings/hooks/use-listing-stats';
+import { useMyVehicles } from '@/src/features/rentals/hooks/use-my-vehicles';
 import { typography } from '@/src/design-system/tokens';
 
 const MENU_ITEMS = [
-  { icon: Heart, label: 'Saved items', badge: '12' },
-  { icon: MapPin, label: 'My listings', route: '/my-listings' as const },
+  { icon: MapPin, label: 'My bikes', route: '/my-listings' as const },
   { icon: Calendar, label: 'My bookings', route: '/bookings' as const },
   { icon: Calendar, label: 'Rental requests', route: '/bookings/owner' as const },
   { icon: Star, label: 'Reviews', badge: '4.9' },
@@ -51,10 +49,9 @@ export default function ProfileScreen() {
     cancelCrop,
     isPending: isAvatarPending,
   } = useUploadAvatar();
-  const { data: listingStats } = useListingStats();
+  const { data: myVehicles = [] } = useMyVehicles();
 
-  const listingsCount = listingStats?.total ?? 0;
-  const soldCount = listingStats?.sold ?? 0;
+  const bikesCount = myVehicles.length;
 
   const displayName =
     profile?.display_name ??
@@ -131,7 +128,7 @@ export default function ProfileScreen() {
             >
               <Shield color="#00A844" size={12} />
               <Text style={{ ...typography.caption, color: '#00A844', marginLeft: 4, fontFamily: 'PlusJakartaSans_600SemiBold' }}>
-                Verified seller
+                Verified host
               </Text>
             </View>
           </View>
@@ -139,8 +136,8 @@ export default function ProfileScreen() {
 
         <View style={{ flexDirection: 'row', marginTop: 16, gap: 12 }}>
           {[
-            { label: 'Listings', value: String(listingsCount) },
-            { label: 'Sold', value: String(soldCount) },
+            { label: 'Bikes', value: String(bikesCount) },
+            { label: 'Trips', value: '0' },
             { label: 'Rating', value: '4.9' },
           ].map((stat) => (
             <View
@@ -201,9 +198,9 @@ export default function ProfileScreen() {
                   {item.badge}
                 </Text>
               )}
-              {'route' in item && item.route === '/my-listings' && listingsCount > 0 && (
+              {'route' in item && item.route === '/my-listings' && bikesCount > 0 && (
                 <Text style={{ ...typography.caption, color: colors.textSecondary, marginRight: 8 }}>
-                  {listingsCount}
+                  {bikesCount}
                 </Text>
               )}
               <ChevronRight color={colors.textSecondary} size={18} />

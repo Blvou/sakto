@@ -39,21 +39,21 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
+          title: 'Rent',
           tabBarIcon: ({ color, size }) => <Home color={color} size={size} strokeWidth={1.5} />,
         }}
       />
       <Tabs.Screen
         name="search"
         options={{
-          title: 'Search',
+          title: 'Find',
           tabBarIcon: ({ color, size }) => <Search color={color} size={size} strokeWidth={1.5} />,
         }}
       />
       <Tabs.Screen
         name="sell"
         options={{
-          title: 'Sell',
+          title: 'List',
           tabBarIcon: ({ color, size }) => <PlusCircle color={color} size={size + 4} strokeWidth={1.5} />,
         }}
       />
