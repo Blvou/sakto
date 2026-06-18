@@ -1,4 +1,9 @@
-import { DEMO_VEHICLE_IMAGES, DEMO_VEHICLES } from '../data/demo-vehicles';
+import {
+  DEMO_VEHICLE_IMAGES,
+  DEMO_VEHICLES,
+  DEMO_VEHICLE_REMOTE_URLS,
+  DEMO_VEHICLE_SUPABASE_IMAGE_KEY,
+} from '../data/demo-vehicles';
 import {
   boundingBox,
   haversineDistanceKm,
@@ -45,8 +50,27 @@ type VehicleDetailRow = VehicleRow & {
 
 const fallbackVehicleImage = require('../../../../assets/scooters/s1.png');
 
-function getVehiclePhotoSource(path?: string | null) {
+function resolveLegacyWikimediaUrl(path: string): { uri: string } | null {
+  if (!path.includes('wikimedia.org')) return null;
+  if (path.includes('Honda_Beat')) return { uri: DEMO_VEHICLE_REMOTE_URLS.s1 };
+  if (path.includes('Yamaha_Mio')) return { uri: DEMO_VEHICLE_REMOTE_URLS.s2 };
+  if (path.includes('Honda_Click')) return { uri: DEMO_VEHICLE_REMOTE_URLS.s3 };
+  return { uri: DEMO_VEHICLE_REMOTE_URLS.s1 };
+}
+
+function getVehiclePhotoSource(path?: string | null, vehicleId?: string) {
   if (!path) return fallbackVehicleImage;
+
+  if (vehicleId) {
+    const imageKey = DEMO_VEHICLE_SUPABASE_IMAGE_KEY[vehicleId];
+    if (imageKey && path.includes('wikimedia.org')) {
+      return { uri: DEMO_VEHICLE_REMOTE_URLS[imageKey] };
+    }
+  }
+
+  const legacy = resolveLegacyWikimediaUrl(path);
+  if (legacy) return legacy;
+
   if (path.startsWith('https://') || path.startsWith('http://')) {
     return { uri: path };
   }
@@ -75,7 +99,7 @@ function mapVehicleCard(row: VehicleCardRow, options?: MapVehicleCardOptions): V
     lat: row.lat,
     lng: row.lng,
     distanceKm,
-    image: getVehiclePhotoSource(cover?.storage_path),
+    image: getVehiclePhotoSource(cover?.storage_path, row.id),
     instant: row.instant_booking,
     rating: null,
     reviewCount: 0,

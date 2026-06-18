@@ -65,7 +65,7 @@ export default function ScooterDetailScreen() {
         reviewCount: 0,
         location: vehicle.location,
         instant: vehicle.instant_booking,
-        image: getVehiclePhotoSource(vehicle.photos[0]?.storage_path),
+        image: getVehiclePhotoSource(vehicle.photos[0]?.storage_path, vehicle.id),
         ownerId: vehicle.owner_id,
         description: vehicle.description,
       };

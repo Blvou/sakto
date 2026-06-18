@@ -53,7 +53,7 @@ export default function BookingDetailScreen() {
   }
 
   const cover = booking.vehicle.photos[0];
-  const image = getVehiclePhotoSource(cover?.storage_path);
+  const image = getVehiclePhotoSource(cover?.storage_path, booking.vehicle.id);
   const counterparty = role === 'owner' ? booking.renter : booking.owner;
   const canOwnerAct = role === 'owner' && booking.status === 'pending';
   const canRenterCancel =

@@ -168,3 +168,19 @@ export const DEMO_VEHICLE_IMAGES: Record<DemoVehicleImageKey, number> = {
   s2: require('../../../../assets/scooters/s2.png'),
   s3: require('../../../../assets/scooters/s3.png'),
 };
+
+/** Stable HTTPS URLs for demo fleet when served from Supabase (web + native). */
+export const DEMO_VEHICLE_REMOTE_URLS: Record<DemoVehicleImageKey, string> = {
+  s1: 'https://raw.githubusercontent.com/Blvou/sakto/main/assets/scooters/s1.png',
+  s2: 'https://raw.githubusercontent.com/Blvou/sakto/main/assets/scooters/s2.png',
+  s3: 'https://raw.githubusercontent.com/Blvou/sakto/main/assets/scooters/s3.png',
+};
+
+export const DEMO_VEHICLE_SUPABASE_IMAGE_KEY: Record<string, DemoVehicleImageKey> = {
+  'b0000000-0000-4000-8000-000000000001': 's1',
+  'b0000000-0000-4000-8000-000000000002': 's2',
+  'b0000000-0000-4000-8000-000000000003': 's3',
+  'b0000000-0000-4000-8000-000000000004': 's1',
+  'b0000000-0000-4000-8000-000000000005': 's2',
+  'b0000000-0000-4000-8000-000000000006': 's3',
+};

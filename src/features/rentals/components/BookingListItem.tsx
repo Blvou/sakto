@@ -33,7 +33,7 @@ export const BookingListItem = memo(function BookingListItem({
 }: BookingListItemProps) {
   const { colors } = useTheme();
   const cover = booking.vehicle.photos[0];
-  const image = getVehiclePhotoSource(cover?.storage_path);
+  const image = getVehiclePhotoSource(cover?.storage_path, booking.vehicle.id);
   const canOwnerAct = role === 'owner' && booking.status === 'pending';
   const canRenterCancel =
     role === 'renter' && (booking.status === 'pending' || booking.status === 'confirmed');

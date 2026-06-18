@@ -1,5 +1,5 @@
 -- Seed demo rental vehicles for the earliest profile (demo host).
--- Demo photos use public Wikimedia URLs in storage_path (see getVehiclePhotoSource).
+-- Demo photos use stable GitHub raw URLs in storage_path (see getVehiclePhotoSource).
 
 do $$
 declare
@@ -151,10 +151,10 @@ begin
   );
 
   insert into public.vehicle_photos (vehicle_id, storage_path, sort_order) values
-    ('b0000000-0000-4000-8000-000000000001', 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Honda_Beat_%28Indonesia%29%2C_South_Jakarta.jpg/640px-Honda_Beat_%28Indonesia%29%2C_South_Jakarta.jpg', 0),
-    ('b0000000-0000-4000-8000-000000000002', 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4d/Yamaha_Mio_M3_Azerbaijan.jpg/640px-Yamaha_Mio_M3_Azerbaijan.jpg', 0),
-    ('b0000000-0000-4000-8000-000000000003', 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/Honda_Click_160_%28Indonesia%29.jpg/640px-Honda_Click_160_%28Indonesia%29.jpg', 0),
-    ('b0000000-0000-4000-8000-000000000004', 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Honda_Beat_%28Indonesia%29%2C_South_Jakarta.jpg/640px-Honda_Beat_%28Indonesia%29%2C_South_Jakarta.jpg', 0),
-    ('b0000000-0000-4000-8000-000000000005', 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4d/Yamaha_Mio_M3_Azerbaijan.jpg/640px-Yamaha_Mio_M3_Azerbaijan.jpg', 0),
-    ('b0000000-0000-4000-8000-000000000006', 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/Honda_Click_160_%28Indonesia%29.jpg/640px-Honda_Click_160_%28Indonesia%29.jpg', 0);
+    ('b0000000-0000-4000-8000-000000000001', 'https://raw.githubusercontent.com/Blvou/sakto/main/assets/scooters/s1.png', 0),
+    ('b0000000-0000-4000-8000-000000000002', 'https://raw.githubusercontent.com/Blvou/sakto/main/assets/scooters/s2.png', 0),
+    ('b0000000-0000-4000-8000-000000000003', 'https://raw.githubusercontent.com/Blvou/sakto/main/assets/scooters/s3.png', 0),
+    ('b0000000-0000-4000-8000-000000000004', 'https://raw.githubusercontent.com/Blvou/sakto/main/assets/scooters/s1.png', 0),
+    ('b0000000-0000-4000-8000-000000000005', 'https://raw.githubusercontent.com/Blvou/sakto/main/assets/scooters/s2.png', 0),
+    ('b0000000-0000-4000-8000-000000000006', 'https://raw.githubusercontent.com/Blvou/sakto/main/assets/scooters/s3.png', 0);
 end $$;
