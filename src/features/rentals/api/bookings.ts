@@ -1,8 +1,8 @@
+import { insertUserNotification } from '@/src/features/notifications/api/notifications';
 import { supabase } from '@/src/lib/supabase';
 import type { CreateBookingInput, UpdateBookingStatusInput } from '../schemas';
 import type { BookingItem, BookingRow, VehiclePhotoRow, VehicleRow } from '../types';
-
-const SERVICE_FEE = 50;
+import { calcBookingTotal, calcPlatformFee, calcRentalSubtotal } from '../utils/pricing';
 
 type BookingJoinRow = BookingRow & {
   vehicle: Pick<VehicleRow, 'id' | 'title' | 'price_per_day' | 'location' | 'lat' | 'lng'> & {
@@ -67,7 +67,9 @@ export async function createBooking(
   }
 
   const pricePerDay = Number(vehicle.price_per_day);
-  const totalAmount = pricePerDay * input.days + SERVICE_FEE;
+  const subtotal = calcRentalSubtotal(pricePerDay, input.days);
+  const serviceFee = calcPlatformFee(subtotal);
+  const totalAmount = calcBookingTotal(pricePerDay, input.days);
 
   const { data, error } = await supabase
     .from('bookings')
@@ -79,7 +81,7 @@ export async function createBooking(
       end_date: endDate,
       days: input.days,
       price_per_day: pricePerDay,
-      service_fee: SERVICE_FEE,
+      service_fee: serviceFee,
       total_amount: totalAmount,
       status: 'pending',
       message: input.message || null,
@@ -88,6 +90,15 @@ export async function createBooking(
     .single();
 
   if (error) throw error;
+
+  await insertUserNotification({
+    userId: vehicle.owner_id,
+    title: 'New rental request',
+    body: `A renter requested your bike for ${input.days} day${input.days === 1 ? '' : 's'}.`,
+    href: `/bookings/${data.id}`,
+    bookingId: data.id,
+  });
+
   return data.id;
 }
 
@@ -167,10 +178,29 @@ export async function fetchOwnerBookings(ownerId: string): Promise<BookingItem[]
   return ((data ?? []) as unknown as BookingJoinRow[]).map(mapBooking);
 }
 
+const COUNTERPARTY_STATUS_MESSAGES: Partial<
+  Record<UpdateBookingStatusInput['status'], { title: string; body: string }>
+> = {
+  confirmed: { title: 'Booking confirmed', body: 'Your rental is ready for pickup.' },
+  declined: { title: 'Request declined', body: 'The host declined this rental request.' },
+  cancelled: { title: 'Booking cancelled', body: 'The renter cancelled this rental request.' },
+  completed: { title: 'Trip completed', body: 'Your rental has been marked as returned.' },
+};
+
 export async function updateBookingStatus(
   userId: string,
   input: UpdateBookingStatusInput
 ): Promise<void> {
+  const { data: booking, error: fetchError } = await supabase
+    .from('bookings')
+    .select('id, owner_id, renter_id')
+    .eq('id', input.bookingId)
+    .or(`renter_id.eq.${userId},owner_id.eq.${userId}`)
+    .maybeSingle();
+
+  if (fetchError) throw fetchError;
+  if (!booking) throw new Error('Booking not found');
+
   let query = supabase
     .from('bookings')
     .update({ status: input.status })
@@ -184,6 +214,20 @@ export async function updateBookingStatus(
 
   const { error } = await query;
   if (error) throw error;
+
+  const recipientId =
+    userId === booking.owner_id ? booking.renter_id : booking.owner_id;
+  const message = COUNTERPARTY_STATUS_MESSAGES[input.status];
+
+  if (message) {
+    await insertUserNotification({
+      userId: recipientId,
+      title: message.title,
+      body: message.body,
+      href: `/bookings/${input.bookingId}`,
+      bookingId: input.bookingId,
+    });
+  }
 }
 
 export async function fetchBookingById(

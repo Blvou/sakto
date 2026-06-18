@@ -1,9 +1,14 @@
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
 import { Bell } from 'lucide-react-native';
 import { ScreenHeader } from '@/src/design-system/components/ScreenHeader';
 import { EmptyState } from '@/src/design-system/components/EmptyState';
-import { useNotificationsStore } from '@/src/stores/notifications-store';
+import { ErrorState } from '@/src/design-system/components/ErrorState';
+import {
+  useMarkAllNotificationsRead,
+  useMarkNotificationRead,
+  useUserNotifications,
+} from '@/src/features/notifications/hooks/use-user-notifications';
 import { useTheme } from '@/src/hooks/use-theme';
 import { typography } from '@/src/design-system/tokens';
 import { useCardStyle } from '@/src/design-system/use-card-style';
@@ -12,9 +17,9 @@ export default function NotificationsScreen() {
   const { colors } = useTheme();
   const router = useRouter();
   const cardStyle = useCardStyle();
-  const items = useNotificationsStore((s) => s.items);
-  const markRead = useNotificationsStore((s) => s.markRead);
-  const markAllRead = useNotificationsStore((s) => s.markAllRead);
+  const { data: items = [], isLoading, isError, refetch } = useUserNotifications();
+  const markRead = useMarkNotificationRead();
+  const markAllRead = useMarkAllNotificationsRead();
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -23,7 +28,7 @@ export default function NotificationsScreen() {
         onBack={() => router.back()}
         right={
           items.length > 0 ? (
-            <Pressable onPress={markAllRead} hitSlop={8}>
+            <Pressable onPress={() => markAllRead.mutate()} hitSlop={8}>
               <Text style={{ ...typography.caption, color: colors.primary, fontFamily: 'PlusJakartaSans_600SemiBold' }}>
                 Read all
               </Text>
@@ -32,7 +37,13 @@ export default function NotificationsScreen() {
         }
       />
 
-      {items.length === 0 ? (
+      {isLoading ? (
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <ActivityIndicator color={colors.primary} />
+        </View>
+      ) : isError ? (
+        <ErrorState title="Could not load notifications" onRetry={() => refetch()} />
+      ) : items.length === 0 ? (
         <EmptyState
           icon={Bell}
           title="No notifications yet"
@@ -44,7 +55,9 @@ export default function NotificationsScreen() {
             <Pressable
               key={item.id}
               onPress={() => {
-                markRead(item.id);
+                if (!item.read) {
+                  markRead.mutate(item.id);
+                }
                 if (item.href) router.push(item.href as Href);
               }}
               style={{

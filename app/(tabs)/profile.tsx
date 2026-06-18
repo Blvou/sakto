@@ -25,7 +25,7 @@ import { ImageCropModal } from '@/src/features/media/components/ImageCropModal';
 import { useUploadAvatar } from '@/src/features/profile/hooks/use-upload-avatar';
 import { useMyVehicles } from '@/src/features/rentals/hooks/use-my-vehicles';
 import { typography } from '@/src/design-system/tokens';
-import { useNotificationsStore } from '@/src/stores/notifications-store';
+import { useUnreadNotificationCount } from '@/src/features/notifications/hooks/use-user-notifications';
 
 const MENU_ITEMS = [
   { icon: Bike, label: 'My bikes', route: '/my-listings' as const },
@@ -45,7 +45,7 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { data: profile } = useMyProfile();
   const stats = useProfileStats();
-  const unreadNotifications = useNotificationsStore((s) => s.unreadCount());
+  const unreadNotifications = useUnreadNotificationCount();
   const {
     pickAvatar,
     pendingCrop,

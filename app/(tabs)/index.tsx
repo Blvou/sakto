@@ -29,7 +29,7 @@ import {
   type VehicleFilterOption,
 } from '@/src/features/rentals/utils/vehicle-filters';
 import { useRequireAuth } from '@/src/hooks/use-require-auth';
-import { useNotificationsStore } from '@/src/stores/notifications-store';
+import { useUnreadNotificationCount } from '@/src/features/notifications/hooks/use-user-notifications';
 import type { VehicleCardItem } from '@/src/features/rentals/types';
 
 function ScooterRowSkeleton({ cardWidth, imageHeight }: { cardWidth: number; imageHeight: number }) {
@@ -45,7 +45,7 @@ export default function HomeScreen() {
   const { colors } = useTheme();
   const router = useRouter();
   const requireAuth = useRequireAuth();
-  const notificationCount = useNotificationsStore((s) => s.unreadCount());
+  const notificationCount = useUnreadNotificationCount();
   const { cardWidth, horizontalPadding, listBottomPadding, scooterCardWidth, scale } =
     useResponsive();
 

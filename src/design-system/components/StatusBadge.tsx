@@ -33,8 +33,8 @@ export function getBookingStatusMessage(status: BookingStatus, role: 'renter' | 
     switch (status) {
       case 'pending':
         return 'Waiting for host confirmation';
-      case 'confirmed':
-        return 'Ready for pickup';
+    case 'confirmed':
+      return 'Ready for pickup — pay host on pickup';
       case 'completed':
         return 'Trip completed';
       case 'declined':
@@ -48,7 +48,7 @@ export function getBookingStatusMessage(status: BookingStatus, role: 'renter' | 
     case 'pending':
       return 'New rental request';
     case 'confirmed':
-      return 'Renter arriving soon';
+      return 'Mark returned when the bike is back';
     case 'completed':
       return 'Trip completed';
     case 'declined':

@@ -14,6 +14,11 @@ import { getVehiclePhotoSource } from '@/src/features/rentals/api/vehicles';
 import { useBookingDetail } from '@/src/features/rentals/hooks/use-booking-detail';
 import { useUpdateBookingStatus } from '@/src/features/rentals/hooks/use-bookings';
 import { formatPrice } from '@/src/features/home/data/mock-data';
+import {
+  calcPlatformFee,
+  calcRentalSubtotal,
+  platformFeePercentLabel,
+} from '@/src/features/rentals/utils/pricing';
 import { openMapsNavigation } from '@/src/lib/maps';
 import { useAuth } from '@/src/features/auth/hooks/use-auth';
 import { useCardStyle } from '@/src/design-system/use-card-style';
@@ -56,8 +61,12 @@ export default function BookingDetailScreen() {
   const image = getVehiclePhotoSource(cover?.storage_path, booking.vehicle.id);
   const counterparty = role === 'owner' ? booking.renter : booking.owner;
   const canOwnerAct = role === 'owner' && booking.status === 'pending';
+  const canOwnerComplete = role === 'owner' && booking.status === 'confirmed';
   const canRenterCancel =
     role === 'renter' && (booking.status === 'pending' || booking.status === 'confirmed');
+
+  const rentalSubtotal = calcRentalSubtotal(Number(booking.price_per_day), booking.days);
+  const platformFee = calcPlatformFee(rentalSubtotal);
 
   const handleNavigate = () => {
     if (booking.vehicle.lat != null && booking.vehicle.lng != null) {
@@ -91,7 +100,27 @@ export default function BookingDetailScreen() {
             <Text style={{ ...typography.caption, color: colors.textSecondary, marginTop: 4 }}>
               {booking.start_date} – {booking.end_date} • {booking.days}d
             </Text>
-            <Text style={{ ...typography.price, color: colors.primary, marginTop: 6 }}>
+          </View>
+        </View>
+
+        <View style={{ padding: 16, ...cardStyle, gap: 8 }}>
+          <Text style={{ ...typography.h3, color: colors.textPrimary, marginBottom: 4 }}>Price breakdown</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+            <Text style={{ ...typography.body, color: colors.textSecondary }}>
+              {formatPrice(Number(booking.price_per_day))} x {booking.days} days
+            </Text>
+            <Text style={{ ...typography.body, color: colors.textPrimary }}>{formatPrice(rentalSubtotal)}</Text>
+          </View>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+            <Text style={{ ...typography.body, color: colors.textSecondary }}>
+              Platform fee ({platformFeePercentLabel()})
+            </Text>
+            <Text style={{ ...typography.body, color: colors.textPrimary }}>{formatPrice(platformFee)}</Text>
+          </View>
+          <View style={{ height: 1, backgroundColor: colors.border, marginVertical: 4 }} />
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+            <Text style={{ ...typography.h3, color: colors.textPrimary }}>Total</Text>
+            <Text style={{ ...typography.price, color: colors.primary }}>
               {formatPrice(Number(booking.total_amount))}
             </Text>
           </View>
@@ -212,12 +241,32 @@ export default function BookingDetailScreen() {
           </View>
         ) : null}
 
+        {canOwnerComplete ? (
+          <Pressable
+            onPress={() => updateStatus.mutate({ bookingId: booking.id, status: 'completed' })}
+            disabled={updateStatus.isPending}
+            style={{
+              minHeight: 48,
+              borderRadius: 12,
+              backgroundColor: colors.primary,
+              alignItems: 'center',
+              justifyContent: 'center',
+              opacity: updateStatus.isPending ? 0.7 : 1,
+            }}
+          >
+            <Text style={{ color: '#FFF', fontFamily: 'PlusJakartaSans_700Bold' }}>Mark returned</Text>
+          </Pressable>
+        ) : null}
+
         {canRenterCancel ? (
           <Pressable
             onPress={() => updateStatus.mutate({ bookingId: booking.id, status: 'cancelled' })}
+            disabled={updateStatus.isPending}
             style={{ minHeight: 48, borderRadius: 12, backgroundColor: colors.border, alignItems: 'center', justifyContent: 'center' }}
           >
-            <Text style={{ color: colors.textPrimary, fontFamily: 'PlusJakartaSans_700Bold' }}>Cancel request</Text>
+            <Text style={{ color: colors.textPrimary, fontFamily: 'PlusJakartaSans_700Bold' }}>
+              {booking.status === 'confirmed' ? 'Cancel booking' : 'Cancel request'}
+            </Text>
           </Pressable>
         ) : null}
       </View>

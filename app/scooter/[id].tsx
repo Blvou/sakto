@@ -20,6 +20,12 @@ import { useVehicleBlockedDates } from '@/src/features/rentals/hooks/use-vehicle
 import { useVehicle } from '@/src/features/rentals/hooks/use-vehicles';
 import { createBookingSchema } from '@/src/features/rentals/schemas';
 import {
+  calcBookingTotal,
+  calcPlatformFee,
+  calcRentalSubtotal,
+  platformFeePercentLabel,
+} from '@/src/features/rentals/utils/pricing';
+import {
   addDays,
   buildDateRange,
   formatDateChip,
@@ -120,8 +126,9 @@ export default function ScooterDetailScreen() {
     });
   }, [demoVehicle, mockScooter, vehicle]);
 
-  const serviceFee = 50;
-  const total = detail.pricePerDay * selectedDays;
+  const rentalSubtotal = calcRentalSubtotal(detail.pricePerDay, selectedDays);
+  const serviceFee = calcPlatformFee(rentalSubtotal);
+  const grandTotal = calcBookingTotal(detail.pricePerDay, selectedDays);
   const endDate = toDateOnly(addDays(new Date(`${startDate}T00:00:00.000Z`), selectedDays - 1));
   const blockedDates = useMemo(
     () => new Set(blockedDatesQuery.data ?? []),
@@ -501,11 +508,13 @@ export default function ScooterDetailScreen() {
                 {formatPrice(detail.pricePerDay)} x {selectedDays} days
               </Text>
               <Text style={{ ...typography.body, color: colors.textPrimary }}>
-                {formatPrice(total)}
+                {formatPrice(rentalSubtotal)}
               </Text>
             </View>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 }}>
-              <Text style={{ ...typography.body, color: colors.textSecondary }}>Service fee</Text>
+              <Text style={{ ...typography.body, color: colors.textSecondary }}>
+                Platform fee ({platformFeePercentLabel()})
+              </Text>
               <Text style={{ ...typography.body, color: colors.textPrimary }}>{formatPrice(serviceFee)}</Text>
             </View>
             <View
@@ -517,7 +526,7 @@ export default function ScooterDetailScreen() {
             />
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
               <Text style={{ ...typography.h3, color: colors.textPrimary }}>Total</Text>
-              <Text style={{ ...typography.price, color: colors.primary }}>{formatPrice(total + serviceFee)}</Text>
+              <Text style={{ ...typography.price, color: colors.primary }}>{formatPrice(grandTotal)}</Text>
             </View>
           </View>
 
@@ -564,7 +573,7 @@ export default function ScooterDetailScreen() {
             <ActivityIndicator color="#FFF" />
           ) : (
             <Text style={{ ...typography.body, color: '#FFF', fontFamily: 'PlusJakartaSans_700Bold' }}>
-              {isOwnVehicle ? 'Your bike' : `Request booking - ${formatPrice(total + serviceFee)}`}
+              {isOwnVehicle ? 'Your bike' : `Request booking - ${formatPrice(grandTotal)}`}
             </Text>
           )}
         </Pressable>
