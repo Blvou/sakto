@@ -258,6 +258,24 @@ export interface Database {
         };
         Relationships: [];
       };
+      user_favorites: {
+        Row: {
+          id: string;
+          user_id: string;
+          listing_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          listing_id: string;
+          created_at?: string;
+        };
+        Update: {
+          listing_id?: string;
+        };
+        Relationships: [];
+      };
       user_notifications: {
         Row: {
           id: string;

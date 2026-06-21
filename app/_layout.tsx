@@ -104,6 +104,18 @@ function RootLayoutNav() {
         name="notifications"
         options={{ title: 'Notifications', presentation: 'card', headerShown: false }}
       />
+      <Stack.Screen
+        name="favorites"
+        options={{ title: 'Favorites', presentation: 'card', headerShown: false }}
+      />
+      <Stack.Screen
+        name="transport/index"
+        options={{ title: 'Transport', presentation: 'card', headerShown: false }}
+      />
+      <Stack.Screen
+        name="browse/[category]"
+        options={{ title: 'Browse', presentation: 'card', headerShown: false }}
+      />
       <Stack.Screen name="(auth)" options={{ headerShown: false }} />
       <Stack.Screen
         name="chat/[id]"

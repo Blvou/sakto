@@ -82,7 +82,8 @@ function mockToCardItems(): ListingCardItem[] {
 
 export async function fetchListingsPage(
   cursor?: ListingsPageCursor,
-  limit = LISTINGS_PAGE_SIZE
+  limit = LISTINGS_PAGE_SIZE,
+  category?: string | null
 ): Promise<ListingsPage> {
   let query = supabase
     .from('listings')
@@ -91,6 +92,10 @@ export async function fetchListingsPage(
     .order('created_at', { ascending: false })
     .order('id', { ascending: false })
     .limit(limit);
+
+  if (category) {
+    query = query.eq('category', category);
+  }
 
   if (cursor) {
     query = query.or(

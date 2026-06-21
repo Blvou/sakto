@@ -7,10 +7,15 @@ export interface ListingCategory {
 
 /** Marketplace listing categories stored in `listings.category`. */
 export const LISTING_CATEGORIES: ListingCategory[] = [
+  { id: 'moto-buy', label: 'Buy motorcycle', emoji: '🏍️' },
+  { id: 'auto-buy', label: 'Buy car', emoji: '🚗' },
+  { id: 'parts', label: 'Parts', emoji: '🔧' },
+  { id: 'real-estate', label: 'Real Estate', emoji: '🏠' },
+  { id: 'services', label: 'Services', emoji: '🛠️' },
   { id: 'electronics', label: 'Electronics', emoji: '📱' },
   { id: 'clothing', label: 'Clothing', emoji: '👕' },
-  { id: 'home', label: 'Home', emoji: '🏠' },
-  { id: 'auto', label: 'Auto', emoji: '🚗' },
+  { id: 'home', label: 'Home', emoji: '🏡' },
+  { id: 'auto', label: 'Auto', emoji: '🚙' },
   { id: 'jobs', label: 'Jobs', emoji: '💼' },
   { id: 'games', label: 'Games', emoji: '🎮' },
 ];
