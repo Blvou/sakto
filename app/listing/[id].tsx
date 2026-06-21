@@ -9,7 +9,10 @@ import { typography } from '@/src/design-system/tokens';
 import { useIsFavorite } from '@/src/features/favorites/hooks/use-is-favorite';
 import { useToggleFavorite } from '@/src/features/favorites/hooks/use-toggle-favorite';
 import { formatPrice } from '@/src/features/home/data/mock-data';
+import { resolveListingCategoryId } from '@/src/features/listings/constants/categories';
 import { useListing } from '@/src/features/listings/hooks/use-listing';
+import { formatTimeAgo } from '@/src/features/listings/utils/format-time-ago';
+import type { ListingCardItem } from '@/src/features/listings/types';
 import { resolveListingImage } from '@/src/features/listings/utils/listing-images';
 import { useRequireAuth } from '@/src/hooks/use-require-auth';
 import { useResponsive } from '@/src/hooks/use-responsive';
@@ -32,12 +35,24 @@ export default function ListingDetailScreen() {
   }, [router]);
 
   const handleFavoritePress = useCallback(() => {
-    if (!id) return;
+    if (!id || !listing) return;
     if (!requireAuth({ message: 'Sign in to save favorites', returnTo: `/listing/${id}` as Href })) {
       return;
     }
-    toggleFavorite({ listingId: id, isFavorite });
-  }, [id, isFavorite, requireAuth, toggleFavorite]);
+
+    const cardListing: ListingCardItem = {
+      id: listing.id,
+      title: listing.title,
+      price: listing.price,
+      location: listing.location ?? 'Philippines',
+      timeAgo: formatTimeAgo(listing.created_at),
+      image: resolveListingImage(listing.id, listing.image_url),
+      category: resolveListingCategoryId(listing.id, listing.category),
+      liked: true,
+    };
+
+    toggleFavorite({ listingId: id, isFavorite, listing: cardListing });
+  }, [id, isFavorite, listing, requireAuth, toggleFavorite]);
 
   if (isLoading) {
     return (

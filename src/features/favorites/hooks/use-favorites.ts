@@ -19,6 +19,7 @@ export function useFavorites() {
     },
     enabled: !!userId,
     staleTime: 60_000,
+    refetchOnMount: 'always',
   });
 }
 
@@ -33,5 +34,6 @@ export function useFavoriteIds() {
     },
     enabled: !!userId,
     staleTime: 60_000,
+    refetchOnMount: 'always',
   });
 }

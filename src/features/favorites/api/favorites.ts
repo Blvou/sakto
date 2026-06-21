@@ -7,12 +7,6 @@ import { isSupabaseConfigured, supabase } from '@/src/lib/supabase';
 
 const MOCK_FAVORITES_KEY = 'user_favorites_mock';
 
-type FavoriteJoinRow = {
-  listing_id: string;
-  created_at: string;
-  listings: ListingRow;
-};
-
 function toCardItem(row: ListingRow): ListingCardItem {
   return {
     id: row.id,
@@ -75,32 +69,35 @@ export async function fetchUserFavorites(userId: string): Promise<ListingCardIte
     }));
   }
 
-  const { data, error } = await supabase
+  const { data: favoriteRows, error: favoritesError } = await supabase
     .from('user_favorites')
-    .select(
-      `
-      listing_id,
-      created_at,
-      listings!inner (
-        id,
-        seller_id,
-        title,
-        price,
-        image_url,
-        location,
-        created_at,
-        status,
-        category
-      )
-    `
-    )
+    .select('listing_id, created_at')
     .eq('user_id', userId)
-    .eq('listings.status', 'active')
     .order('created_at', { ascending: false });
 
-  if (error) throw error;
+  if (favoritesError) throw favoritesError;
+  if (!favoriteRows?.length) return [];
 
-  return ((data ?? []) as unknown as FavoriteJoinRow[]).map((row) => toCardItem(row.listings));
+  const listingIds = favoriteRows.map((row) => row.listing_id);
+
+  const { data: listingRows, error: listingsError } = await supabase
+    .from('listings')
+    .select('id, seller_id, title, price, image_url, location, created_at, status, category')
+    .in('id', listingIds)
+    .eq('status', 'active');
+
+  if (listingsError) throw listingsError;
+
+  const listingById = new Map(
+    (listingRows ?? []).map((row) => [row.id, row as ListingRow])
+  );
+
+  return favoriteRows
+    .map((favorite) => {
+      const listing = listingById.get(favorite.listing_id);
+      return listing ? toCardItem(listing) : null;
+    })
+    .filter((item): item is ListingCardItem => item !== null);
 }
 
 export async function addFavorite(userId: string, listingId: string): Promise<void> {

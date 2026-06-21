@@ -59,7 +59,10 @@ export const ListingCard = memo(function ListingCard({
             </View>
           )}
           <Pressable
-            onPress={handleLikePress}
+            onPress={(event) => {
+              event.stopPropagation();
+              handleLikePress();
+            }}
             style={{
               position: 'absolute',
               top: 4,

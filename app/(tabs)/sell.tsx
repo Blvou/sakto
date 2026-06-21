@@ -96,14 +96,12 @@ export default function MyListingsTabScreen() {
         title={activeTab === 'active' ? 'No active listings' : 'Archive is empty'}
         description={
           activeTab === 'active'
-            ? 'Post your first listing and reach buyers on Sakto.'
+            ? 'Use the button below to post your first listing.'
             : 'Sold and archived listings will appear here.'
         }
-        actionLabel={activeTab === 'active' ? 'Post listing' : undefined}
-        onAction={activeTab === 'active' ? handlePostListing : undefined}
       />
     );
-  }, [activeTab, handlePostListing, isError, isLoading, requireAuth, userId]);
+  }, [activeTab, isError, isLoading, requireAuth, userId]);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -166,7 +164,7 @@ export default function MyListingsTabScreen() {
         />
       )}
 
-      <PostListingBar onPress={handlePostListing} />
+      {userId ? <PostListingBar onPress={handlePostListing} /> : null}
     </View>
   );
 }

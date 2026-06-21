@@ -28,7 +28,7 @@ export const FavoriteListingCard = memo(function FavoriteListingCard({
       if (!requireAuth({ message: 'Sign in to save favorites', returnTo })) {
         return;
       }
-      toggleFavorite({ listingId: id, isFavorite });
+      toggleFavorite({ listingId: id, isFavorite, listing });
     },
     [isFavorite, requireAuth, returnTo, toggleFavorite]
   );
