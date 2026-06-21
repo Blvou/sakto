@@ -1,6 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
-import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { ArrowLeft, Flag, Heart, MapPin, MessageCircle } from 'lucide-react-native';
 import { Avatar } from '@/src/design-system/components/Avatar';
@@ -11,12 +10,13 @@ import { useIsFavorite } from '@/src/features/favorites/hooks/use-is-favorite';
 import { useToggleFavorite } from '@/src/features/favorites/hooks/use-toggle-favorite';
 import { formatPrice } from '@/src/features/home/data/mock-data';
 import { resolveListingCategoryId } from '@/src/features/listings/constants/categories';
+import { ListingPhotoGallery } from '@/src/features/listings/components/ListingPhotoGallery';
 import { ListingSpecs } from '@/src/features/listings/components/ListingSpecs';
 import { ReportListingModal } from '@/src/features/listings/components/ReportListingModal';
 import { useHasReportedListing, useReportListing } from '@/src/features/listings/hooks/use-report-listing';
 import { useListing } from '@/src/features/listings/hooks/use-listing';
 import { formatTimeAgo } from '@/src/features/listings/utils/format-time-ago';
-import { resolveListingImage } from '@/src/features/listings/utils/listing-images';
+import { resolveListingImage, resolveListingImages } from '@/src/features/listings/utils/listing-images';
 import { resolveListingSpecs } from '@/src/features/listings/utils/listing-specs';
 import type { ListingCardItem } from '@/src/features/listings/types';
 import { useAuth } from '@/src/features/auth/hooks/use-auth';
@@ -42,6 +42,11 @@ export default function ListingDetailScreen() {
   const [reportVisible, setReportVisible] = useState(false);
 
   const isOwnListing = !!listing && !!userId && listing.seller_id === userId;
+
+  const photos = useMemo(() => {
+    if (!listing) return [];
+    return resolveListingImages(listing.id, listing.image_url);
+  }, [listing]);
 
   const specs = useMemo(() => {
     if (!listing) return [];
@@ -123,10 +128,50 @@ export default function ListingDetailScreen() {
     );
   }
 
-  const imageSource = resolveListingImage(listing.id, listing.image_url);
   const description =
     listing.description?.trim() ||
     'No description provided yet. Message the seller to ask for more details.';
+
+  const headerOverlay = (
+    <>
+      <Pressable
+        onPress={handleBack}
+        style={{
+          width: 44,
+          height: 44,
+          borderRadius: 22,
+          backgroundColor: 'rgba(0,0,0,0.45)',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+        accessibilityRole="button"
+        accessibilityLabel="Go back"
+      >
+        <ArrowLeft color="#FFFFFF" size={22} />
+      </Pressable>
+      <Pressable
+        onPress={handleFavoritePress}
+        disabled={isTogglingFavorite}
+        style={{
+          width: 44,
+          height: 44,
+          borderRadius: 22,
+          backgroundColor: 'rgba(0,0,0,0.45)',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+        accessibilityRole="button"
+        accessibilityLabel={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+      >
+        <Heart
+          color={isFavorite ? colors.secondary : '#FFFFFF'}
+          fill={isFavorite ? colors.secondary : 'transparent'}
+          size={22}
+          strokeWidth={1.75}
+        />
+      </Pressable>
+    </>
+  );
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -136,64 +181,14 @@ export default function ListingDetailScreen() {
         }
         contentContainerStyle={{ paddingBottom: insets.bottom + 120 }}
       >
-        <View style={{ position: 'relative' }}>
-          <Image
-            source={imageSource}
-            style={{ width: '100%', height: 320, backgroundColor: colors.border }}
-            contentFit="cover"
-            accessibilityLabel={listing.title}
-          />
-          <View
-            style={{
-              position: 'absolute',
-              top: insets.top + 8,
-              left: 8,
-              right: 8,
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}
-          >
-            <Pressable
-              onPress={handleBack}
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: 22,
-                backgroundColor: 'rgba(0,0,0,0.45)',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-              accessibilityRole="button"
-              accessibilityLabel="Go back"
-            >
-              <ArrowLeft color="#FFFFFF" size={22} />
-            </Pressable>
-            <Pressable
-              onPress={handleFavoritePress}
-              disabled={isTogglingFavorite}
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: 22,
-                backgroundColor: 'rgba(0,0,0,0.45)',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-              accessibilityRole="button"
-              accessibilityLabel={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
-            >
-              <Heart
-                color={isFavorite ? colors.secondary : '#FFFFFF'}
-                fill={isFavorite ? colors.secondary : 'transparent'}
-                size={22}
-                strokeWidth={1.75}
-              />
-            </Pressable>
-          </View>
-        </View>
+        <ListingPhotoGallery
+          images={photos}
+          title={listing.title}
+          topInset={insets.top}
+          overlay={headerOverlay}
+        />
 
-        <View style={{ paddingHorizontal: horizontalPadding, paddingTop: 16 }}>
+        <View style={{ paddingHorizontal: horizontalPadding, paddingTop: 8 }}>
           <Text style={{ ...typography.price, color: colors.primary }}>{formatPrice(listing.price)}</Text>
           <Text style={{ ...typography.h2, color: colors.textPrimary, marginTop: 8 }}>{listing.title}</Text>
 
