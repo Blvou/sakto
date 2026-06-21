@@ -1,21 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft } from 'lucide-react-native';
+import { ArrowLeft, Trash2 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
 import { typography } from '@/src/design-system/tokens';
 import { LISTING_CATEGORIES } from '@/src/features/listings/constants/categories';
 import { useListing } from '@/src/features/listings/hooks/use-listing';
+import { useDeleteListing } from '@/src/features/listings/hooks/use-delete-listing';
 import { useUpdateListing } from '@/src/features/listings/hooks/use-update-listing';
 import { updateListingSchema } from '@/src/features/listings/schemas';
 import { useTheme } from '@/src/hooks/use-theme';
@@ -29,6 +21,7 @@ export default function EditListingScreen() {
   const requireAuth = useRequireAuth();
   const { data: listing, isLoading } = useListing(id);
   const updateListing = useUpdateListing();
+  const deleteListing = useDeleteListing();
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -72,6 +65,23 @@ export default function EditListingScreen() {
 
     updateListing.mutate({ listingId: id, input: parsed.data });
   }, [description, id, listing?.image_url, location, price, title, category, updateListing]);
+
+  const handleDelete = useCallback(() => {
+    if (!id || !listing) return;
+
+    Alert.alert(
+      'Delete listing?',
+      `"${listing.title}" will be removed permanently.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => deleteListing.mutate(id),
+        },
+      ]
+    );
+  }, [deleteListing, id, listing]);
 
   const selectedCategory = useMemo(
     () => LISTING_CATEGORIES.find((item) => item.id === category) ?? LISTING_CATEGORIES[0],
@@ -236,6 +246,36 @@ export default function EditListingScreen() {
             <Text style={{ ...typography.h3, color: colors.background, fontFamily: 'PlusJakartaSans_600SemiBold' }}>
               Save · {selectedCategory.label}
             </Text>
+          )}
+        </Pressable>
+
+        <Pressable
+          onPress={handleDelete}
+          disabled={deleteListing.isPending}
+          style={{
+            marginTop: 16,
+            minHeight: 52,
+            borderRadius: 14,
+            borderWidth: 1,
+            borderColor: colors.secondary,
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexDirection: 'row',
+            gap: 8,
+            opacity: deleteListing.isPending ? 0.7 : 1,
+          }}
+          accessibilityRole="button"
+          accessibilityLabel="Delete listing"
+        >
+          {deleteListing.isPending ? (
+            <ActivityIndicator color={colors.secondary} />
+          ) : (
+            <>
+              <Trash2 color={colors.secondary} size={18} />
+              <Text style={{ ...typography.body, color: colors.secondary, fontFamily: 'PlusJakartaSans_700Bold' }}>
+                Delete listing
+              </Text>
+            </>
           )}
         </Pressable>
       </ScrollView>

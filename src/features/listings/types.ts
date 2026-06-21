@@ -33,6 +33,7 @@ export interface ListingCardItem {
 
 export interface ListingDetail extends ListingRow {
   seller: ProfilePreview;
+  media_urls: string[];
 }
 
 export interface MyListingItem extends ListingCardItem {

@@ -145,7 +145,8 @@ export async function fetchListingById(id: string): Promise<ListingDetail | null
       status,
       attributes,
       created_at,
-      seller:profiles!seller_id ( id, display_name, avatar_url )
+      seller:profiles!seller_id ( id, display_name, avatar_url ),
+      listing_media ( url, sort_order )
     `
     )
     .eq('id', id)
@@ -154,11 +155,17 @@ export async function fetchListingById(id: string): Promise<ListingDetail | null
   if (error) throw error;
   if (!data) return null;
 
+  type MediaRow = { url: string; sort_order: number };
   type Row = ListingRow & {
     seller: { id: string; display_name: string; avatar_url: string | null };
+    listing_media: MediaRow[] | null;
   };
 
   const row = data as unknown as Row;
+  const media_urls = (row.listing_media ?? [])
+    .slice()
+    .sort((a, b) => a.sort_order - b.sort_order)
+    .map((item) => item.url);
 
   return {
     id: row.id,
@@ -173,6 +180,7 @@ export async function fetchListingById(id: string): Promise<ListingDetail | null
     attributes: row.attributes ?? {},
     created_at: row.created_at,
     seller: row.seller,
+    media_urls,
   };
 }
 

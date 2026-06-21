@@ -7,70 +7,40 @@ const DEMO_IMAGE_MAP: Record<string, number> = {
   'a0000000-0000-4000-8000-000000000006': require('../../../../assets/listings/l6.png'),
 };
 
-/** Extra demo angles per listing to power the detail photo slider. */
-const DEMO_GALLERY_MAP: Record<string, readonly number[]> = {
-  'a0000000-0000-4000-8000-000000000001': [
-    DEMO_IMAGE_MAP['a0000000-0000-4000-8000-000000000001'],
-    DEMO_IMAGE_MAP['a0000000-0000-4000-8000-000000000005'],
-    DEMO_IMAGE_MAP['a0000000-0000-4000-8000-000000000004'],
-    DEMO_IMAGE_MAP['a0000000-0000-4000-8000-000000000001'],
-    DEMO_IMAGE_MAP['a0000000-0000-4000-8000-000000000005'],
-  ],
-  'a0000000-0000-4000-8000-000000000002': [
-    DEMO_IMAGE_MAP['a0000000-0000-4000-8000-000000000002'],
-    DEMO_IMAGE_MAP['a0000000-0000-4000-8000-000000000006'],
-    DEMO_IMAGE_MAP['a0000000-0000-4000-8000-000000000002'],
-    DEMO_IMAGE_MAP['a0000000-0000-4000-8000-000000000003'],
-  ],
-  'a0000000-0000-4000-8000-000000000003': [
-    DEMO_IMAGE_MAP['a0000000-0000-4000-8000-000000000003'],
-    DEMO_IMAGE_MAP['a0000000-0000-4000-8000-000000000001'],
-    DEMO_IMAGE_MAP['a0000000-0000-4000-8000-000000000003'],
-    DEMO_IMAGE_MAP['a0000000-0000-4000-8000-000000000004'],
-    DEMO_IMAGE_MAP['a0000000-0000-4000-8000-000000000002'],
-    DEMO_IMAGE_MAP['a0000000-0000-4000-8000-000000000003'],
-  ],
-  'a0000000-0000-4000-8000-000000000004': [
-    DEMO_IMAGE_MAP['a0000000-0000-4000-8000-000000000004'],
-    DEMO_IMAGE_MAP['a0000000-0000-4000-8000-000000000001'],
-    DEMO_IMAGE_MAP['a0000000-0000-4000-8000-000000000004'],
-  ],
-  'a0000000-0000-4000-8000-000000000005': [
-    DEMO_IMAGE_MAP['a0000000-0000-4000-8000-000000000005'],
-    DEMO_IMAGE_MAP['a0000000-0000-4000-8000-000000000001'],
-    DEMO_IMAGE_MAP['a0000000-0000-4000-8000-000000000005'],
-    DEMO_IMAGE_MAP['a0000000-0000-4000-8000-000000000004'],
-    DEMO_IMAGE_MAP['a0000000-0000-4000-8000-000000000006'],
-  ],
-  'a0000000-0000-4000-8000-000000000006': [
-    DEMO_IMAGE_MAP['a0000000-0000-4000-8000-000000000006'],
-    DEMO_IMAGE_MAP['a0000000-0000-4000-8000-000000000002'],
-    DEMO_IMAGE_MAP['a0000000-0000-4000-8000-000000000006'],
-    DEMO_IMAGE_MAP['a0000000-0000-4000-8000-000000000003'],
-  ],
-};
-
 const PLACEHOLDER = require('../../../../assets/listings/l1.png');
 
 export type ListingImageSource = number | { uri: string };
 
 export function resolveListingImage(
   listingId: string,
-  imageUrl: string | null
+  imageUrl: string | null,
+  mediaUrls?: readonly string[] | null
 ): ListingImageSource {
-  if (imageUrl) return { uri: imageUrl };
+  const firstRemote = mediaUrls?.[0] ?? imageUrl;
+  if (firstRemote) return { uri: firstRemote };
   return DEMO_IMAGE_MAP[listingId] ?? PLACEHOLDER;
 }
 
+/** Returns only photos that belong to this listing — never mixed across cards. */
 export function resolveListingImages(
   listingId: string,
-  imageUrl: string | null
+  imageUrl: string | null,
+  mediaUrls?: readonly string[] | null
 ): ListingImageSource[] {
-  if (imageUrl) return [{ uri: imageUrl }];
+  const remoteUrls: string[] = [];
 
-  const demoGallery = DEMO_GALLERY_MAP[listingId];
-  if (demoGallery?.length) return [...demoGallery];
+  if (mediaUrls?.length) {
+    for (const url of mediaUrls) {
+      if (url && !remoteUrls.includes(url)) remoteUrls.push(url);
+    }
+  } else if (imageUrl) {
+    remoteUrls.push(imageUrl);
+  }
 
-  const fallback = DEMO_IMAGE_MAP[listingId] ?? PLACEHOLDER;
-  return [fallback];
+  if (remoteUrls.length > 0) {
+    return remoteUrls.map((uri) => ({ uri }));
+  }
+
+  const demoImage = DEMO_IMAGE_MAP[listingId] ?? PLACEHOLDER;
+  return [demoImage];
 }

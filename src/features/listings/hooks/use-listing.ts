@@ -29,6 +29,7 @@ export function useListing(id: string | undefined) {
           attributes: DEMO_LISTING_ATTRIBUTES[mock.id] ?? {},
           status: 'active' as const,
           created_at: new Date().toISOString(),
+          media_urls: [],
           seller: {
             id: 'demo',
             display_name: 'Maria Santos',

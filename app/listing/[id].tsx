@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
-import { ArrowLeft, Flag, Heart, MapPin, MessageCircle } from 'lucide-react-native';
+import { ArrowLeft, Flag, Heart, MapPin, MessageCircle, Pencil, Trash2 } from 'lucide-react-native';
 import { Avatar } from '@/src/design-system/components/Avatar';
 import { ErrorState } from '@/src/design-system/components/ErrorState';
 import { typography } from '@/src/design-system/tokens';
@@ -14,6 +14,7 @@ import { ListingPhotoGallery } from '@/src/features/listings/components/ListingP
 import { ListingSpecs } from '@/src/features/listings/components/ListingSpecs';
 import { ReportListingModal } from '@/src/features/listings/components/ReportListingModal';
 import { useHasReportedListing, useReportListing } from '@/src/features/listings/hooks/use-report-listing';
+import { useDeleteListing } from '@/src/features/listings/hooks/use-delete-listing';
 import { useListing } from '@/src/features/listings/hooks/use-listing';
 import { formatTimeAgo } from '@/src/features/listings/utils/format-time-ago';
 import { resolveListingImage, resolveListingImages } from '@/src/features/listings/utils/listing-images';
@@ -37,6 +38,7 @@ export default function ListingDetailScreen() {
   const isFavorite = useIsFavorite(id);
   const { mutate: toggleFavorite, isPending: isTogglingFavorite } = useToggleFavorite();
   const startConversation = useStartConversation();
+  const deleteListing = useDeleteListing();
   const reportListing = useReportListing(id);
   const { data: hasReported = false } = useHasReportedListing(id);
   const [reportVisible, setReportVisible] = useState(false);
@@ -45,7 +47,7 @@ export default function ListingDetailScreen() {
 
   const photos = useMemo(() => {
     if (!listing) return [];
-    return resolveListingImages(listing.id, listing.image_url);
+    return resolveListingImages(listing.id, listing.image_url, listing.media_urls);
   }, [listing]);
 
   const specs = useMemo(() => {
@@ -111,6 +113,28 @@ export default function ListingDetailScreen() {
     },
     [reportListing]
   );
+
+  const handleEditPress = useCallback(() => {
+    if (!id) return;
+    router.push(`/listing/${id}/edit`);
+  }, [id, router]);
+
+  const handleDeletePress = useCallback(() => {
+    if (!id || !listing || !isOwnListing) return;
+
+    Alert.alert(
+      'Delete listing?',
+      `"${listing.title}" will be removed permanently.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => deleteListing.mutate(id),
+        },
+      ]
+    );
+  }, [deleteListing, id, isOwnListing, listing]);
 
   if (isLoading) {
     return (
@@ -254,33 +278,87 @@ export default function ListingDetailScreen() {
           borderTopColor: colors.border,
         }}
       >
-        <Pressable
-          onPress={handleChatPress}
-          disabled={isOwnListing || startConversation.isPending}
-          style={{
-            minHeight: 52,
-            borderRadius: 12,
-            backgroundColor: isOwnListing ? colors.border : colors.primary,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 8,
-            opacity: startConversation.isPending ? 0.75 : 1,
-          }}
-          accessibilityRole="button"
-          accessibilityLabel={isOwnListing ? 'This is your listing' : 'Message seller'}
-        >
-          {startConversation.isPending ? (
-            <ActivityIndicator color="#FFF" />
-          ) : (
-            <>
-              <MessageCircle color="#FFF" size={20} />
-              <Text style={{ ...typography.body, color: '#FFF', fontFamily: 'PlusJakartaSans_700Bold' }}>
-                {isOwnListing ? 'Your listing' : 'Message seller'}
+        {isOwnListing ? (
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <Pressable
+              onPress={handleEditPress}
+              style={{
+                flex: 1,
+                minHeight: 52,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: colors.border,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="Edit listing"
+            >
+              <Pencil color={colors.textPrimary} size={18} />
+              <Text style={{ ...typography.body, color: colors.textPrimary, fontFamily: 'PlusJakartaSans_700Bold' }}>
+                Edit
               </Text>
-            </>
-          )}
-        </Pressable>
+            </Pressable>
+            <Pressable
+              onPress={handleDeletePress}
+              disabled={deleteListing.isPending}
+              style={{
+                flex: 1,
+                minHeight: 52,
+                borderRadius: 12,
+                backgroundColor: colors.secondary,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                opacity: deleteListing.isPending ? 0.75 : 1,
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="Delete listing"
+            >
+              {deleteListing.isPending ? (
+                <ActivityIndicator color="#FFF" />
+              ) : (
+                <>
+                  <Trash2 color="#FFF" size={18} />
+                  <Text style={{ ...typography.body, color: '#FFF', fontFamily: 'PlusJakartaSans_700Bold' }}>
+                    Delete
+                  </Text>
+                </>
+              )}
+            </Pressable>
+          </View>
+        ) : (
+          <Pressable
+            onPress={handleChatPress}
+            disabled={startConversation.isPending}
+            style={{
+              minHeight: 52,
+              borderRadius: 12,
+              backgroundColor: colors.primary,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              opacity: startConversation.isPending ? 0.75 : 1,
+            }}
+            accessibilityRole="button"
+            accessibilityLabel="Message seller"
+          >
+            {startConversation.isPending ? (
+              <ActivityIndicator color="#FFF" />
+            ) : (
+              <>
+                <MessageCircle color="#FFF" size={20} />
+                <Text style={{ ...typography.body, color: '#FFF', fontFamily: 'PlusJakartaSans_700Bold' }}>
+                  Message seller
+                </Text>
+              </>
+            )}
+          </Pressable>
+        )}
       </View>
 
       <ReportListingModal

@@ -64,6 +64,27 @@ export interface Database {
         };
         Relationships: [];
       };
+      listing_media: {
+        Row: {
+          id: string;
+          listing_id: string;
+          url: string;
+          sort_order: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          listing_id: string;
+          url: string;
+          sort_order?: number;
+          created_at?: string;
+        };
+        Update: {
+          url?: string;
+          sort_order?: number;
+        };
+        Relationships: [];
+      };
       listing_reports: {
         Row: {
           id: string;
