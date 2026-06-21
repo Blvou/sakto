@@ -143,6 +143,7 @@ export async function fetchListingById(id: string): Promise<ListingDetail | null
       description,
       category,
       status,
+      attributes,
       created_at,
       seller:profiles!seller_id ( id, display_name, avatar_url )
     `
@@ -169,6 +170,7 @@ export async function fetchListingById(id: string): Promise<ListingDetail | null
     description: row.description,
     category: row.category,
     status: row.status,
+    attributes: row.attributes ?? {},
     created_at: row.created_at,
     seller: row.seller,
   };

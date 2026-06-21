@@ -36,6 +36,7 @@ export interface Database {
           description: string | null;
           category: string | null;
           status: 'active' | 'sold' | 'archived';
+          attributes: Record<string, string>;
           created_at: string;
         };
         Insert: {
@@ -48,6 +49,7 @@ export interface Database {
           description?: string | null;
           category?: string | null;
           status?: 'active' | 'sold' | 'archived';
+          attributes?: Record<string, string>;
           created_at?: string;
         };
         Update: {
@@ -58,6 +60,30 @@ export interface Database {
           description?: string | null;
           category?: string | null;
           status?: 'active' | 'sold' | 'archived';
+          attributes?: Record<string, string>;
+        };
+        Relationships: [];
+      };
+      listing_reports: {
+        Row: {
+          id: string;
+          listing_id: string;
+          reporter_id: string;
+          reason: 'spam' | 'fraud' | 'prohibited' | 'wrong_category' | 'other';
+          details: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          listing_id: string;
+          reporter_id: string;
+          reason: 'spam' | 'fraud' | 'prohibited' | 'wrong_category' | 'other';
+          details?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          reason?: 'spam' | 'fraud' | 'prohibited' | 'wrong_category' | 'other';
+          details?: string | null;
         };
         Relationships: [];
       };

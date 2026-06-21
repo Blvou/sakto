@@ -1,5 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { isSupabaseConfigured } from '@/src/lib/supabase';
+import { resolveListingCategoryId } from '@/src/features/listings/constants/categories';
+import { DEMO_LISTING_ATTRIBUTES } from '@/src/features/listings/constants/demo-attributes';
 import { DEMO_LISTINGS } from '../api/listings';
 import { fetchListingById } from '../api/listings';
 import { listingQueryKeys } from '../types';
@@ -22,8 +24,9 @@ export function useListing(id: string | undefined) {
           image_url: null,
           location: mock.location,
           description:
-            'Well-maintained item in excellent condition. No scratches or dents. Includes original box and accessories.',
-          category: 'Electronics',
+            'Well-maintained item in excellent condition. No scratches or dents. Includes original box and accessories. Meet-up in a public place preferred.',
+          category: resolveListingCategoryId(mock.id, null),
+          attributes: DEMO_LISTING_ATTRIBUTES[mock.id] ?? {},
           status: 'active' as const,
           created_at: new Date().toISOString(),
           seller: {

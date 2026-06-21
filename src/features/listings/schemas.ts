@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { LISTING_REPORT_REASONS } from './types';
 
 export const createListingSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters').max(120),
@@ -16,3 +17,16 @@ export const updateListingSchema = createListingSchema.extend({
 });
 
 export type UpdateListingInput = z.infer<typeof updateListingSchema>;
+
+const reportReasonIds = LISTING_REPORT_REASONS.map((item) => item.id) as [
+  (typeof LISTING_REPORT_REASONS)[number]['id'],
+  ...(typeof LISTING_REPORT_REASONS)[number]['id'][],
+];
+
+export const reportListingSchema = z.object({
+  listingId: z.string().uuid(),
+  reason: z.enum(reportReasonIds),
+  details: z.string().max(500).optional(),
+});
+
+export type ReportListingInput = z.infer<typeof reportListingSchema>;
