@@ -60,7 +60,7 @@ export function PromoCarousel({ banners }: PromoCarouselProps) {
               }
               if (banner.category) {
                 router.push({
-                  pathname: '/(tabs)/search',
+                  pathname: '/search',
                   params: { category: banner.category },
                 });
               }

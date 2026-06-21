@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Home, Search, PlusCircle, MessageCircle, User } from 'lucide-react-native';
+import { Home, Heart, PlusCircle, MessageCircle, User } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/src/hooks/use-theme';
 import { getTabBarStyle } from '@/src/hooks/use-responsive';
@@ -44,10 +44,10 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="search"
+        name="favorites"
         options={{
-          title: 'Find',
-          tabBarIcon: ({ color, size }) => <Search color={color} size={size} strokeWidth={1.5} />,
+          title: 'Saved',
+          tabBarIcon: ({ color, size }) => <Heart color={color} size={size} strokeWidth={1.5} />,
         }}
       />
       <Tabs.Screen

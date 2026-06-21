@@ -6,6 +6,7 @@ import { Bike, List, Map as MapIcon } from 'lucide-react-native';
 import { EmptyState } from '@/src/design-system/components/EmptyState';
 import { ErrorState } from '@/src/design-system/components/ErrorState';
 import { GridSkeleton } from '@/src/design-system/components/ListSkeleton';
+import { ScreenHeader } from '@/src/design-system/components/ScreenHeader';
 import { typography } from '@/src/design-system/tokens';
 import { CategoryGrid } from '@/src/features/home/components/CategoryGrid';
 import { SearchBar } from '@/src/features/home/components/SearchBar';
@@ -86,6 +87,10 @@ export default function SearchScreen() {
 
   const featuredVehicles = useMemo(() => vehicles.slice(0, 6), [vehicles]);
 
+  const handleBack = useCallback(() => {
+    router.back();
+  }, [router]);
+
   const handleCategoryPress = useCallback((category: Category) => {
     const filter = categoryIdToFilter(category.id);
     if (!filter) return;
@@ -122,7 +127,6 @@ export default function SearchScreen() {
     () => (
       <View>
         <View style={{ paddingHorizontal: horizontalPadding }}>
-          <Text style={{ ...typography.h1, color: colors.textPrimary, marginBottom: 12 }}>Find bikes</Text>
           <SearchBar
             value={query}
             onChangeText={setQuery}
@@ -284,7 +288,8 @@ export default function SearchScreen() {
   }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background, paddingTop: 56 }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <ScreenHeader title="Find bikes" onBack={handleBack} />
       <FlashList
         data={vehiclesLoading || vehiclesError ? [] : vehicles}
         numColumns={2}

@@ -109,6 +109,10 @@ function RootLayoutNav() {
         options={{ title: 'Favorites', presentation: 'card', headerShown: false }}
       />
       <Stack.Screen
+        name="search"
+        options={{ title: 'Find bikes', presentation: 'card', headerShown: false }}
+      />
+      <Stack.Screen
         name="transport/index"
         options={{ title: 'Transport', presentation: 'card', headerShown: false }}
       />

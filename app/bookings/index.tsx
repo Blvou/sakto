@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { View } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import { useStartBookingConversation } from '@/src/features/chat/hooks/use-start-booking-conversation';
 import { BookingListItem } from '@/src/features/rentals/components/BookingListItem';
 import { useRenterBookings, useUpdateBookingStatus } from '@/src/features/rentals/hooks/use-bookings';
@@ -57,7 +57,7 @@ export default function MyBookingsScreen() {
               title="No bookings yet"
               description="Open a bike and send a rental request to see it here."
               actionLabel="Find bikes"
-              onAction={() => router.push('/(tabs)/search')}
+              onAction={() => router.push('/search' as Href)}
             />
           }
         />

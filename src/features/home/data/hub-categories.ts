@@ -5,8 +5,8 @@ import {
   Car,
   CarFront,
   Cog,
+  HandHelping,
   Store,
-  Wrench,
   type LucideIcon,
 } from 'lucide-react-native';
 
@@ -20,7 +20,7 @@ export interface HubCategory {
 export const HUB_CATEGORIES: HubCategory[] = [
   { id: 'transport', label: 'Transport', icon: Car, href: '/transport' as Href },
   { id: 'real-estate', label: 'Real Estate', icon: Building2, href: '/browse/real-estate' as Href },
-  { id: 'services', label: 'Services', icon: Wrench, href: '/browse/services' as Href },
+  { id: 'services', label: 'Services', icon: HandHelping, href: '/browse/services' as Href },
   { id: 'marketplace', label: 'Marketplace', icon: Store, href: '/browse/marketplace' as Href },
 ];
 
@@ -35,7 +35,7 @@ export interface TransportSubcategory {
 export const TRANSPORT_SUBCATEGORIES: TransportSubcategory[] = [
   { id: 'moto-buy', label: 'Buy motorcycle', icon: Bike, href: '/browse/moto-buy' as Href },
   { id: 'auto-buy', label: 'Buy car', icon: CarFront, href: '/browse/auto-buy' as Href },
-  { id: 'moto-rent', label: 'Rent motorcycle', icon: Bike, href: '/(tabs)/search' },
+  { id: 'moto-rent', label: 'Rent motorcycle', icon: Bike, href: '/search' as Href },
   { id: 'auto-rent', label: 'Rent car', icon: Car, comingSoon: true },
   { id: 'parts', label: 'Parts', icon: Cog, href: '/browse/parts' as Href },
 ];
