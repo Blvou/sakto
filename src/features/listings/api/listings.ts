@@ -222,7 +222,7 @@ export async function fetchListingStats(sellerId: string): Promise<{ total: numb
 export async function fetchListingsBySeller(sellerId: string): Promise<MyListingItem[]> {
   const { data, error } = await supabase
     .from('listings')
-    .select('id, seller_id, title, price, image_url, location, created_at, status')
+    .select('id, seller_id, title, price, image_url, location, created_at, status, category')
     .eq('seller_id', sellerId)
     .order('created_at', { ascending: false });
 

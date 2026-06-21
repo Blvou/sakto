@@ -101,6 +101,10 @@ function RootLayoutNav() {
         options={{ title: 'List a Bike', presentation: 'modal', headerShown: false }}
       />
       <Stack.Screen
+        name="publish/listing"
+        options={{ title: 'Post Listing', presentation: 'modal', headerShown: false }}
+      />
+      <Stack.Screen
         name="notifications"
         options={{ title: 'Notifications', presentation: 'card', headerShown: false }}
       />

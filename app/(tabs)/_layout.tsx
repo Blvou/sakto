@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Home, Heart, PlusCircle, MessageCircle, User } from 'lucide-react-native';
+import { Home, Heart, FilePlus, MessageCircle, User } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/src/hooks/use-theme';
 import { getTabBarStyle } from '@/src/hooks/use-responsive';
@@ -53,8 +53,8 @@ export default function TabLayout() {
       <Tabs.Screen
         name="sell"
         options={{
-          title: 'List',
-          tabBarIcon: ({ color, size }) => <PlusCircle color={color} size={size + 4} strokeWidth={1.5} />,
+          title: 'Ads',
+          tabBarIcon: ({ color, size }) => <FilePlus color={color} size={size} strokeWidth={1.5} />,
         }}
       />
       <Tabs.Screen

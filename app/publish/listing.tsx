@@ -9,60 +9,60 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { ArrowLeft } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
 import { typography } from '@/src/design-system/tokens';
 import { LISTING_CATEGORIES } from '@/src/features/listings/constants/categories';
-import { useListing } from '@/src/features/listings/hooks/use-listing';
-import { useUpdateListing } from '@/src/features/listings/hooks/use-update-listing';
-import { updateListingSchema } from '@/src/features/listings/schemas';
+import { useCreateListing } from '@/src/features/listings/hooks/use-create-listing';
+import { createListingSchema } from '@/src/features/listings/schemas';
 import { useTheme } from '@/src/hooks/use-theme';
 import { useRequireAuth } from '@/src/hooks/use-require-auth';
 
-export default function EditListingScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+export default function PublishListingScreen() {
   const { colors } = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const requireAuth = useRequireAuth();
-  const { data: listing, isLoading } = useListing(id);
-  const updateListing = useUpdateListing();
+  const { category: categoryParam } = useLocalSearchParams<{ category?: string }>();
+  const createListing = useCreateListing();
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
-  const [location, setLocation] = useState('');
-  const [category, setCategory] = useState('electronics');
+  const [location, setLocation] = useState('Manila, Metro Manila');
+  const [category, setCategory] = useState(
+    typeof categoryParam === 'string' ? categoryParam : 'marketplace'
+  );
 
   useEffect(() => {
-    requireAuth({ message: 'Sign in to edit a listing', returnTo: `/listing/${id}/edit` });
-  }, [id, requireAuth]);
+    requireAuth({ message: 'Sign in to post a listing', returnTo: '/publish/listing' as Href });
+  }, [requireAuth]);
 
   useEffect(() => {
-    if (!listing) return;
-    setTitle(listing.title);
-    setDescription(listing.description ?? '');
-    setPrice(String(listing.price));
-    setLocation(listing.location ?? '');
-    setCategory(listing.category ?? 'electronics');
-  }, [listing]);
+    if (typeof categoryParam === 'string') {
+      setCategory(categoryParam);
+    }
+  }, [categoryParam]);
+
+  const selectedCategory = useMemo(
+    () => LISTING_CATEGORIES.find((item) => item.id === category) ?? LISTING_CATEGORIES[0],
+    [category]
+  );
 
   const handleBack = useCallback(() => {
     router.back();
   }, [router]);
 
-  const handleSave = useCallback(() => {
-    if (!id) return;
-
-    const parsed = updateListingSchema.safeParse({
+  const handlePublish = useCallback(() => {
+    const parsed = createListingSchema.safeParse({
       title,
       description,
       price,
       location,
-      category,
-      imageUrl: listing?.image_url ?? '',
+      category: category === 'marketplace' ? undefined : category,
+      imageUrl: '',
     });
 
     if (!parsed.success) {
@@ -70,21 +70,8 @@ export default function EditListingScreen() {
       return;
     }
 
-    updateListing.mutate({ listingId: id, input: parsed.data });
-  }, [description, id, listing?.image_url, location, price, title, category, updateListing]);
-
-  const selectedCategory = useMemo(
-    () => LISTING_CATEGORIES.find((item) => item.id === category) ?? LISTING_CATEGORIES[0],
-    [category]
-  );
-
-  if (isLoading || !listing) {
-    return (
-      <View style={{ flex: 1, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center' }}>
-        <ActivityIndicator color={colors.primary} />
-      </View>
-    );
-  }
+    createListing.mutate(parsed.data);
+  }, [category, createListing, description, location, price, title]);
 
   return (
     <KeyboardAvoidingView
@@ -105,16 +92,21 @@ export default function EditListingScreen() {
         <Pressable
           onPress={handleBack}
           style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center', marginLeft: -8 }}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <ArrowLeft color={colors.textPrimary} size={22} />
         </Pressable>
         <Text style={{ ...typography.h3, color: colors.textPrimary, flex: 1, textAlign: 'center' }}>
-          Edit listing
+          Post listing
         </Text>
         <View style={{ width: 44 }} />
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 32 }} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 100 }}
+        keyboardShouldPersistTaps="handled"
+      >
         <Text style={{ ...typography.caption, color: colors.textSecondary, marginBottom: 8 }}>Category</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, marginBottom: 20 }}>
           {LISTING_CATEGORIES.map((item) => {
@@ -150,6 +142,8 @@ export default function EditListingScreen() {
         <TextInput
           value={title}
           onChangeText={setTitle}
+          placeholder="What are you selling or offering?"
+          placeholderTextColor={colors.textSecondary}
           style={{
             ...typography.body,
             color: colors.textPrimary,
@@ -167,6 +161,8 @@ export default function EditListingScreen() {
         <TextInput
           value={description}
           onChangeText={setDescription}
+          placeholder="Describe condition, features, and pickup details"
+          placeholderTextColor={colors.textSecondary}
           multiline
           textAlignVertical="top"
           style={{
@@ -187,6 +183,8 @@ export default function EditListingScreen() {
         <TextInput
           value={price}
           onChangeText={setPrice}
+          placeholder="0"
+          placeholderTextColor={colors.textSecondary}
           keyboardType="numeric"
           style={{
             ...typography.body,
@@ -205,6 +203,8 @@ export default function EditListingScreen() {
         <TextInput
           value={location}
           onChangeText={setLocation}
+          placeholder="City or area"
+          placeholderTextColor={colors.textSecondary}
           style={{
             ...typography.body,
             color: colors.textPrimary,
@@ -219,22 +219,28 @@ export default function EditListingScreen() {
         />
 
         <Pressable
-          onPress={handleSave}
-          disabled={updateListing.isPending}
+          onPress={handlePublish}
+          disabled={createListing.isPending}
           style={{
             minHeight: 52,
             borderRadius: 14,
             backgroundColor: colors.textPrimary,
             alignItems: 'center',
             justifyContent: 'center',
-            opacity: updateListing.isPending ? 0.7 : 1,
+            opacity: createListing.isPending ? 0.7 : 1,
           }}
         >
-          {updateListing.isPending ? (
+          {createListing.isPending ? (
             <ActivityIndicator color={colors.background} />
           ) : (
-            <Text style={{ ...typography.h3, color: colors.background, fontFamily: 'PlusJakartaSans_600SemiBold' }}>
-              Save · {selectedCategory.label}
+            <Text
+              style={{
+                ...typography.h3,
+                color: colors.background,
+                fontFamily: 'PlusJakartaSans_600SemiBold',
+              }}
+            >
+              Publish · {selectedCategory.label}
             </Text>
           )}
         </Pressable>
