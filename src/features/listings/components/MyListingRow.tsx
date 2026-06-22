@@ -1,7 +1,7 @@
 import { memo } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { Image } from 'expo-image';
-import { Pencil } from 'lucide-react-native';
+import { Pencil, Trash2 } from 'lucide-react-native';
 import { useTheme } from '@/src/hooks/use-theme';
 import { useCardStyle } from '@/src/design-system/use-card-style';
 import { typography } from '@/src/design-system/tokens';
@@ -13,6 +13,8 @@ interface MyListingRowProps {
   listing: MyListingItem;
   onPress: (id: string) => void;
   onEditPress: (id: string) => void;
+  onDeletePress: (id: string) => void;
+  isDeleting?: boolean;
 }
 
 function statusLabel(status: MyListingItem['status']): string {
@@ -25,6 +27,8 @@ export const MyListingRow = memo(function MyListingRow({
   listing,
   onPress,
   onEditPress,
+  onDeletePress,
+  isDeleting = false,
 }: MyListingRowProps) {
   const { colors } = useTheme();
   const cardStyle = useCardStyle({ borderRadius: 12 });
@@ -66,15 +70,34 @@ export const MyListingRow = memo(function MyListingRow({
           {getCategoryLabel(listing.category)} · {statusLabel(listing.status)}
         </Text>
       </View>
-      <Pressable
-        onPress={() => onEditPress(listing.id)}
-        hitSlop={8}
-        accessibilityRole="button"
-        accessibilityLabel="Edit listing"
-        style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}
-      >
-        <Pencil color={colors.textSecondary} size={18} strokeWidth={1.75} />
-      </Pressable>
+      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+        <Pressable
+          onPress={() => onEditPress(listing.id)}
+          hitSlop={8}
+          disabled={isDeleting}
+          accessibilityRole="button"
+          accessibilityLabel="Edit listing"
+          style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}
+        >
+          <Pencil color={colors.textSecondary} size={18} strokeWidth={1.75} />
+        </Pressable>
+        <Pressable
+          onPress={() => onDeletePress(listing.id)}
+          hitSlop={8}
+          disabled={isDeleting}
+          accessibilityRole="button"
+          accessibilityLabel="Delete listing"
+          style={{
+            width: 44,
+            height: 44,
+            alignItems: 'center',
+            justifyContent: 'center',
+            opacity: isDeleting ? 0.5 : 1,
+          }}
+        >
+          <Trash2 color={colors.secondary} size={18} strokeWidth={1.75} />
+        </Pressable>
+      </View>
     </Pressable>
   );
 });

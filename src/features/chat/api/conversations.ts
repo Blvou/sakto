@@ -160,3 +160,11 @@ export async function fetchUnreadTotal(userId: string): Promise<number> {
   if (error) throw error;
   return Number(data ?? 0);
 }
+
+export async function hideConversation(conversationId: string): Promise<void> {
+  const { error } = await supabase.rpc('hide_conversation', {
+    p_conversation_id: conversationId,
+  });
+
+  if (error) throw error;
+}

@@ -136,14 +136,17 @@ export interface Database {
           conversation_id: string;
           user_id: string;
           last_read_at: string;
+          hidden_at: string | null;
         };
         Insert: {
           conversation_id: string;
           user_id: string;
           last_read_at?: string;
+          hidden_at?: string | null;
         };
         Update: {
           last_read_at?: string;
+          hidden_at?: string | null;
         };
         Relationships: [];
       };

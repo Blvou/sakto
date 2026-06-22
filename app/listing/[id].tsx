@@ -130,7 +130,7 @@ export default function ListingDetailScreen() {
         {
           text: 'Delete',
           style: 'destructive',
-          onPress: () => deleteListing.mutate(id),
+          onPress: () => deleteListing.mutate({ listingId: id }),
         },
       ]
     );

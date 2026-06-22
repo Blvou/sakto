@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { View, Text, Pressable } from 'react-native';
-import { ArrowLeft } from 'lucide-react-native';
+import { ArrowLeft, Trash2 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/src/hooks/use-theme';
 import { useScreenDimensions } from '@/src/design-system/responsive';
@@ -11,9 +11,11 @@ import type { Profile } from '../types';
 interface Props {
   otherUser: Profile;
   listingTitle?: string | null;
+  onDeletePress?: () => void;
+  isDeleting?: boolean;
 }
 
-export function ChatHeader({ otherUser, listingTitle }: Props) {
+export function ChatHeader({ otherUser, listingTitle, onDeletePress, isDeleting = false }: Props) {
   const { colors } = useTheme();
   const { horizontalPadding, screenHeaderPaddingTop } = useScreenDimensions();
   const router = useRouter();
@@ -53,6 +55,24 @@ export function ChatHeader({ otherUser, listingTitle }: Props) {
           </Text>
         )}
       </View>
+      {onDeletePress ? (
+        <Pressable
+          onPress={onDeletePress}
+          disabled={isDeleting}
+          hitSlop={12}
+          accessibilityRole="button"
+          accessibilityLabel="Delete chat"
+          style={{
+            width: 44,
+            height: 44,
+            alignItems: 'center',
+            justifyContent: 'center',
+            opacity: isDeleting ? 0.5 : 1,
+          }}
+        >
+          <Trash2 color={colors.secondary} size={20} strokeWidth={1.75} />
+        </Pressable>
+      ) : null}
     </View>
   );
 }

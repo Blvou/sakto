@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import { View, Text, Pressable } from 'react-native';
+import { Trash2 } from 'lucide-react-native';
 import { useTheme } from '@/src/hooks/use-theme';
 import { Avatar } from '@/src/design-system/components/Avatar';
 import { chatTypography } from '../constants/typography';
@@ -21,12 +22,16 @@ interface Props {
   conversation: ConversationPreview;
   onPress: (id: string) => void;
   onPressIn?: (id: string) => void;
+  onDeletePress?: (id: string) => void;
+  isDeleting?: boolean;
 }
 
 export const ConversationListItem = memo(function ConversationListItem({
   conversation,
   onPress,
   onPressIn,
+  onDeletePress,
+  isDeleting = false,
 }: Props) {
   const { colors } = useTheme();
   const { other_user, listing_title, vehicle_title, last_message, last_message_at, unread_count } =
@@ -86,6 +91,25 @@ export const ConversationListItem = memo(function ConversationListItem({
           </Text>
         </View>
       )}
+      {onDeletePress ? (
+        <Pressable
+          onPress={() => onDeletePress(conversation.id)}
+          disabled={isDeleting}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Delete chat"
+          style={{
+            width: 44,
+            height: 44,
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginLeft: 4,
+            opacity: isDeleting ? 0.5 : 1,
+          }}
+        >
+          <Trash2 color={colors.secondary} size={18} strokeWidth={1.75} />
+        </Pressable>
+      ) : null}
     </Pressable>
   );
 }, (prev, next) =>
@@ -96,4 +120,6 @@ export const ConversationListItem = memo(function ConversationListItem({
   prev.conversation.other_user.display_name === next.conversation.other_user.display_name &&
   prev.conversation.other_user.avatar_url === next.conversation.other_user.avatar_url &&
   prev.onPress === next.onPress &&
-  prev.onPressIn === next.onPressIn);
+  prev.onPressIn === next.onPressIn &&
+  prev.onDeletePress === next.onDeletePress &&
+  prev.isDeleting === next.isDeleting);

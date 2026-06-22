@@ -30,6 +30,7 @@ export function useListing(id: string | undefined) {
           status: 'active' as const,
           created_at: new Date().toISOString(),
           media_urls: [],
+          media: [],
           seller: {
             id: 'demo',
             display_name: 'Maria Santos',

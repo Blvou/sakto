@@ -3,13 +3,14 @@ import { useRouter } from 'expo-router';
 import { toast } from 'sonner-native';
 import { getErrorMessage } from '@/src/lib/errors';
 import { useAuth } from '@/src/features/auth/hooks/use-auth';
+import { uploadListingPhotos } from '../api/listing-photos';
 import { updateListing } from '../api/listings';
-import type { UpdateListingInput } from '../schemas';
+import type { UpdateListingMutationInput } from '../schemas';
 import { listingQueryKeys } from '../types';
 
 interface UpdateListingParams {
   listingId: string;
-  input: UpdateListingInput;
+  input: UpdateListingMutationInput;
 }
 
 export function useUpdateListing() {
@@ -20,7 +21,14 @@ export function useUpdateListing() {
   return useMutation({
     mutationFn: async ({ listingId, input }: UpdateListingParams) => {
       if (!userId) throw new Error('Sign in to edit a listing');
-      await updateListing(listingId, userId, input);
+
+      const { photos, previousPhotoUrls, ...listingInput } = input;
+      const photoUrls = await uploadListingPhotos(
+        userId,
+        photos.map((photo) => photo.uri)
+      );
+
+      await updateListing(listingId, userId, listingInput, photoUrls, previousPhotoUrls ?? []);
       return listingId;
     },
     onSuccess: (listingId) => {

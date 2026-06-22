@@ -15,8 +15,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
 import { typography } from '@/src/design-system/tokens';
 import { LISTING_CATEGORIES } from '@/src/features/listings/constants/categories';
+import { ListingPhotoPicker } from '@/src/features/listings/components/ListingPhotoPicker';
 import { useCreateListing } from '@/src/features/listings/hooks/use-create-listing';
-import { createListingSchema } from '@/src/features/listings/schemas';
+import { useListingPhotoDrafts } from '@/src/features/listings/hooks/use-listing-photo-drafts';
+import { createListingMutationSchema } from '@/src/features/listings/schemas';
 import { useTheme } from '@/src/hooks/use-theme';
 import { useRequireAuth } from '@/src/hooks/use-require-auth';
 
@@ -27,6 +29,7 @@ export default function PublishListingScreen() {
   const requireAuth = useRequireAuth();
   const { category: categoryParam } = useLocalSearchParams<{ category?: string }>();
   const createListing = useCreateListing();
+  const { photos, pickPhotos, removePhoto, movePhotoToCover, maxPhotos } = useListingPhotoDrafts();
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -56,13 +59,16 @@ export default function PublishListingScreen() {
   }, [router]);
 
   const handlePublish = useCallback(() => {
-    const parsed = createListingSchema.safeParse({
+    const parsed = createListingMutationSchema.safeParse({
       title,
       description,
       price,
       location,
       category: category === 'marketplace' ? undefined : category,
-      imageUrl: '',
+      photos: photos.map((photo) => ({
+        uri: photo.uri,
+        mediaId: photo.mediaId,
+      })),
     });
 
     if (!parsed.success) {
@@ -71,7 +77,7 @@ export default function PublishListingScreen() {
     }
 
     createListing.mutate(parsed.data);
-  }, [category, createListing, description, location, price, title]);
+  }, [category, createListing, description, location, photos, price, title]);
 
   return (
     <KeyboardAvoidingView
@@ -107,6 +113,14 @@ export default function PublishListingScreen() {
         contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 100 }}
         keyboardShouldPersistTaps="handled"
       >
+        <ListingPhotoPicker
+          photos={photos}
+          maxPhotos={maxPhotos}
+          onPickPhotos={pickPhotos}
+          onRemovePhoto={removePhoto}
+          onMovePhotoToCover={movePhotoToCover}
+        />
+
         <Text style={{ ...typography.caption, color: colors.textSecondary, marginBottom: 8 }}>Category</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, marginBottom: 20 }}>
           {LISTING_CATEGORIES.map((item) => {

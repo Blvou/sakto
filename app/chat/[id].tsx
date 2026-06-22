@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, ActivityIndicator, InteractionManager } from 'react-native';
+import { Alert, View, Text, ActivityIndicator, InteractionManager } from 'react-native';
 import { FlashList, type FlashListRef } from '@shopify/flash-list';
 import { useLocalSearchParams } from 'expo-router';
 import { resolveUserTargetLang } from '@/src/features/chat/api/translate-utils';
@@ -26,6 +26,7 @@ import {
   useMarkIncomingDelivered,
 } from '@/src/features/chat/hooks/use-message-receipts';
 import { useTranslateMessage } from '@/src/features/chat/hooks/use-translate-message';
+import { useHideConversation } from '@/src/features/chat/hooks/use-hide-conversation';
 import type { Message } from '@/src/features/chat/types';
 import type { PreferredLang } from '@/src/lib/database.types';
 
@@ -61,6 +62,7 @@ export default function ChatThreadScreen() {
   const sendMutation = useSendMessage(conversationId);
   const markReadMutation = useMarkConversationRead(conversationId);
   const translateMutation = useTranslateMessage();
+  const hideConversation = useHideConversation();
   const recipientId = meta?.otherUser?.id;
   const { data: receiptState } = useMessageReceipts(conversationId, recipientId, !!recipientId);
 
@@ -132,6 +134,23 @@ export default function ChatThreadScreen() {
     [translateMutation]
   );
 
+  const handleDeletePress = useCallback(() => {
+    if (!conversationId || !meta?.otherUser) return;
+
+    Alert.alert(
+      'Delete chat?',
+      `Messages with ${meta.otherUser.display_name} will be removed from your inbox.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => hideConversation.mutate({ conversationId, leaveThread: true }),
+        },
+      ]
+    );
+  }, [conversationId, hideConversation, meta?.otherUser]);
+
   const recipientLastReadAt = receiptState?.recipientLastReadAt ?? null;
   const deliveredMessageIds = receiptState?.deliveredMessageIds ?? EMPTY_DELIVERED;
 
@@ -178,7 +197,12 @@ export default function ChatThreadScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <ChatHeader otherUser={meta.otherUser} listingTitle={meta.listingTitle} />
+      <ChatHeader
+        otherUser={meta.otherUser}
+        listingTitle={meta.listingTitle}
+        onDeletePress={handleDeletePress}
+        isDeleting={hideConversation.isPending}
+      />
       <TranslateHint targetLang={targetLang} />
 
       {isInitialMessagesLoad ? (

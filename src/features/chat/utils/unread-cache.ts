@@ -43,6 +43,18 @@ export function clearConversationUnread(
   patchConversationInCache(queryClient, conversationId, { unread_count: 0 });
 }
 
+export function removeConversationFromCache(
+  queryClient: QueryClient,
+  conversationId: string
+): void {
+  queryClient.setQueryData<InfiniteData<ConversationsPage>>(chatQueryKeys.conversations, (old) =>
+    updateConversationsCache(old, (conversations) =>
+      conversations.filter((conversation) => conversation.id !== conversationId)
+    )
+  );
+  syncUnreadTotalFromConversations(queryClient);
+}
+
 /** Move conversation to top and update preview after a new message — no network refetch. */
 export function bumpConversationOnMessage(
   queryClient: QueryClient,

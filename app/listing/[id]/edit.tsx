@@ -6,10 +6,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
 import { typography } from '@/src/design-system/tokens';
 import { LISTING_CATEGORIES } from '@/src/features/listings/constants/categories';
+import { ListingPhotoPicker } from '@/src/features/listings/components/ListingPhotoPicker';
 import { useListing } from '@/src/features/listings/hooks/use-listing';
 import { useDeleteListing } from '@/src/features/listings/hooks/use-delete-listing';
+import { useListingPhotoDrafts } from '@/src/features/listings/hooks/use-listing-photo-drafts';
 import { useUpdateListing } from '@/src/features/listings/hooks/use-update-listing';
-import { updateListingSchema } from '@/src/features/listings/schemas';
+import { updateListingMutationSchema } from '@/src/features/listings/schemas';
 import { useTheme } from '@/src/hooks/use-theme';
 import { useRequireAuth } from '@/src/hooks/use-require-auth';
 
@@ -22,6 +24,9 @@ export default function EditListingScreen() {
   const { data: listing, isLoading } = useListing(id);
   const updateListing = useUpdateListing();
   const deleteListing = useDeleteListing();
+  const { photos, setFromExistingMedia, pickPhotos, removePhoto, movePhotoToCover, maxPhotos } =
+    useListingPhotoDrafts();
+  const [previousPhotoUrls, setPreviousPhotoUrls] = useState<string[]>([]);
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -40,7 +45,9 @@ export default function EditListingScreen() {
     setPrice(String(listing.price));
     setLocation(listing.location ?? '');
     setCategory(listing.category ?? 'electronics');
-  }, [listing]);
+    setFromExistingMedia(listing.media);
+    setPreviousPhotoUrls(listing.media_urls);
+  }, [listing, setFromExistingMedia]);
 
   const handleBack = useCallback(() => {
     router.back();
@@ -49,13 +56,17 @@ export default function EditListingScreen() {
   const handleSave = useCallback(() => {
     if (!id) return;
 
-    const parsed = updateListingSchema.safeParse({
+    const parsed = updateListingMutationSchema.safeParse({
       title,
       description,
       price,
       location,
       category,
-      imageUrl: listing?.image_url ?? '',
+      photos: photos.map((photo) => ({
+        uri: photo.uri,
+        mediaId: photo.mediaId,
+      })),
+      previousPhotoUrls,
     });
 
     if (!parsed.success) {
@@ -64,7 +75,7 @@ export default function EditListingScreen() {
     }
 
     updateListing.mutate({ listingId: id, input: parsed.data });
-  }, [description, id, listing?.image_url, location, price, title, category, updateListing]);
+  }, [category, description, id, location, photos, previousPhotoUrls, price, title, updateListing]);
 
   const handleDelete = useCallback(() => {
     if (!id || !listing) return;
@@ -77,7 +88,7 @@ export default function EditListingScreen() {
         {
           text: 'Delete',
           style: 'destructive',
-          onPress: () => deleteListing.mutate(id),
+          onPress: () => deleteListing.mutate({ listingId: id }),
         },
       ]
     );
@@ -125,6 +136,14 @@ export default function EditListingScreen() {
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 32 }} keyboardShouldPersistTaps="handled">
+        <ListingPhotoPicker
+          photos={photos}
+          maxPhotos={maxPhotos}
+          onPickPhotos={pickPhotos}
+          onRemovePhoto={removePhoto}
+          onMovePhotoToCover={movePhotoToCover}
+        />
+
         <Text style={{ ...typography.caption, color: colors.textSecondary, marginBottom: 8 }}>Category</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, marginBottom: 20 }}>
           {LISTING_CATEGORIES.map((item) => {

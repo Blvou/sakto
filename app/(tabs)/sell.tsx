@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Alert, Pressable, Text, View } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useRouter, type Href } from 'expo-router';
 import { FileText } from 'lucide-react-native';
@@ -12,6 +12,7 @@ import { useAuth } from '@/src/features/auth/hooks/use-auth';
 import { MyListingRow } from '@/src/features/listings/components/MyListingRow';
 import { PostListingBar } from '@/src/features/listings/components/PostListingBar';
 import { useMyListings } from '@/src/features/listings/hooks/use-my-listings';
+import { useDeleteListing } from '@/src/features/listings/hooks/use-delete-listing';
 import type { MyListingItem } from '@/src/features/listings/types';
 import { useRequireAuth } from '@/src/hooks/use-require-auth';
 import { useResponsive, getTabBarHeight } from '@/src/hooks/use-responsive';
@@ -30,6 +31,8 @@ export default function MyListingsTabScreen() {
   const [activeTab, setActiveTab] = useState<ListingTab>('active');
 
   const { data: listings = [], isLoading, isError, refetch, isRefetching } = useMyListings();
+  const deleteListing = useDeleteListing();
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const filteredListings = useMemo(() => {
     if (activeTab === 'active') {
@@ -68,11 +71,44 @@ export default function MyListingsTabScreen() {
     [router]
   );
 
+  const handleDeletePress = useCallback(
+    (id: string) => {
+      const listing = listings.find((item) => item.id === id);
+      if (!listing) return;
+
+      Alert.alert(
+        'Delete listing?',
+        `"${listing.title}" will be removed permanently.`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: () => {
+              setDeletingId(id);
+              deleteListing.mutate(
+                { listingId: id, stayOnScreen: true },
+                { onSettled: () => setDeletingId(null) }
+              );
+            },
+          },
+        ]
+      );
+    },
+    [deleteListing, listings]
+  );
+
   const renderItem = useCallback(
     ({ item }: { item: MyListingItem }) => (
-      <MyListingRow listing={item} onPress={handleListingPress} onEditPress={handleEditPress} />
+      <MyListingRow
+        listing={item}
+        onPress={handleListingPress}
+        onEditPress={handleEditPress}
+        onDeletePress={handleDeletePress}
+        isDeleting={deletingId === item.id && deleteListing.isPending}
+      />
     ),
-    [handleEditPress, handleListingPress]
+    [deleteListing.isPending, deletingId, handleDeletePress, handleEditPress, handleListingPress]
   );
 
   const listEmpty = useMemo(() => {

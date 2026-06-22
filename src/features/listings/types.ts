@@ -17,6 +17,19 @@ export const LISTING_REPORT_REASONS: ReadonlyArray<{ id: ListingReportReason; la
 
 export type ListingRow = Database['public']['Tables']['listings']['Row'];
 
+export interface ListingMediaItem {
+  id: string;
+  url: string;
+  sort_order: number;
+}
+
+export interface ListingPhotoDraft {
+  key: string;
+  uri: string;
+  mediaId?: string;
+  isNew: boolean;
+}
+
 export type ListingImage = number | { uri: string };
 
 export interface ListingCardItem {
@@ -33,6 +46,7 @@ export interface ListingCardItem {
 
 export interface ListingDetail extends ListingRow {
   seller: ProfilePreview;
+  media: ListingMediaItem[];
   media_urls: string[];
 }
 

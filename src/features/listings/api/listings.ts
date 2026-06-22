@@ -1,4 +1,5 @@
 import { resolveListingCategoryId } from '@/src/features/listings/constants/categories';
+import { syncListingMedia } from '@/src/features/listings/api/listing-photos';
 import { supabase } from '@/src/lib/supabase';
 import { getClientStorage } from '@/src/lib/storage';
 import type { CreateListingInput, UpdateListingInput } from '../schemas';
@@ -146,7 +147,7 @@ export async function fetchListingById(id: string): Promise<ListingDetail | null
       attributes,
       created_at,
       seller:profiles!seller_id ( id, display_name, avatar_url ),
-      listing_media ( url, sort_order )
+      listing_media ( id, url, sort_order )
     `
     )
     .eq('id', id)
@@ -155,17 +156,22 @@ export async function fetchListingById(id: string): Promise<ListingDetail | null
   if (error) throw error;
   if (!data) return null;
 
-  type MediaRow = { url: string; sort_order: number };
+  type MediaRow = { id: string; url: string; sort_order: number };
   type Row = ListingRow & {
     seller: { id: string; display_name: string; avatar_url: string | null };
     listing_media: MediaRow[] | null;
   };
 
   const row = data as unknown as Row;
-  const media_urls = (row.listing_media ?? [])
+  const media = (row.listing_media ?? [])
     .slice()
     .sort((a, b) => a.sort_order - b.sort_order)
-    .map((item) => item.url);
+    .map((item) => ({
+      id: item.id,
+      url: item.url,
+      sort_order: item.sort_order,
+    }));
+  const media_urls = media.map((item) => item.url);
 
   return {
     id: row.id,
@@ -180,14 +186,18 @@ export async function fetchListingById(id: string): Promise<ListingDetail | null
     attributes: row.attributes ?? {},
     created_at: row.created_at,
     seller: row.seller,
+    media,
     media_urls,
   };
 }
 
 export async function createListing(
   sellerId: string,
-  input: CreateListingInput
+  input: CreateListingInput,
+  photoUrls: string[]
 ): Promise<string> {
+  const coverUrl = photoUrls[0] ?? null;
+
   const { data, error } = await supabase
     .from('listings')
     .insert({
@@ -197,13 +207,26 @@ export async function createListing(
       price: input.price,
       location: input.location,
       category: input.category ?? null,
-      image_url: input.imageUrl || null,
+      image_url: coverUrl,
       status: 'active',
     })
     .select('id')
     .single();
 
   if (error) throw error;
+
+  if (photoUrls.length > 0) {
+    const { error: mediaError } = await supabase.from('listing_media').insert(
+      photoUrls.map((url, sort_order) => ({
+        listing_id: data.id,
+        url,
+        sort_order,
+      }))
+    );
+
+    if (mediaError) throw mediaError;
+  }
+
   return data.id;
 }
 
@@ -248,7 +271,9 @@ export async function fetchListingsBySeller(sellerId: string): Promise<MyListing
 export async function updateListing(
   listingId: string,
   sellerId: string,
-  input: UpdateListingInput
+  input: UpdateListingInput,
+  photoUrls: string[],
+  previousPhotoUrls: string[] = []
 ): Promise<void> {
   const { error } = await supabase
     .from('listings')
@@ -258,13 +283,14 @@ export async function updateListing(
       price: input.price,
       location: input.location,
       category: input.category ?? null,
-      image_url: input.imageUrl || null,
       ...(input.status ? { status: input.status } : {}),
     })
     .eq('id', listingId)
     .eq('seller_id', sellerId);
 
   if (error) throw error;
+
+  await syncListingMedia(listingId, sellerId, photoUrls, previousPhotoUrls);
 }
 
 export async function deleteListing(listingId: string, sellerId: string): Promise<void> {

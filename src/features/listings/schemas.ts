@@ -12,11 +12,29 @@ export const createListingSchema = z.object({
 
 export type CreateListingInput = z.infer<typeof createListingSchema>;
 
+export const listingPhotoDraftSchema = z.object({
+  uri: z.string().min(1),
+  mediaId: z.string().uuid().optional(),
+});
+
+export const createListingMutationSchema = createListingSchema.omit({ imageUrl: true }).extend({
+  photos: z.array(listingPhotoDraftSchema).min(1, 'Add at least one photo').max(10),
+});
+
+export type CreateListingMutationInput = z.infer<typeof createListingMutationSchema>;
+
 export const updateListingSchema = createListingSchema.extend({
   status: z.enum(['active', 'sold', 'archived']).optional(),
 });
 
 export type UpdateListingInput = z.infer<typeof updateListingSchema>;
+
+export const updateListingMutationSchema = updateListingSchema.omit({ imageUrl: true }).extend({
+  photos: z.array(listingPhotoDraftSchema).min(1, 'Add at least one photo').max(10),
+  previousPhotoUrls: z.array(z.string().url()).optional(),
+});
+
+export type UpdateListingMutationInput = z.infer<typeof updateListingMutationSchema>;
 
 const reportReasonIds = LISTING_REPORT_REASONS.map((item) => item.id) as [
   (typeof LISTING_REPORT_REASONS)[number]['id'],

@@ -1,7 +1,7 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
-import { View, Text, ActivityIndicator, Pressable } from 'react-native';
+import { Alert, View, Text, ActivityIndicator, Pressable } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/src/hooks/use-theme';
@@ -11,6 +11,7 @@ import { chatTypography } from '@/src/features/chat/constants/typography';
 import { Skeleton } from '@/src/design-system/components/Skeleton';
 import { ConversationListItem } from '@/src/features/chat/components/ConversationListItem';
 import { useConversations } from '@/src/features/chat/hooks/use-conversations';
+import { useHideConversation } from '@/src/features/chat/hooks/use-hide-conversation';
 import { useRealtimeConversationList } from '@/src/features/chat/hooks/use-realtime-conversation-list';
 import { prefetchThreadSnapshot, prefetchConversations } from '@/src/features/chat/utils/prefetch-chat';
 import type { ConversationPreview } from '@/src/features/chat/types';
@@ -47,6 +48,8 @@ export default function ChatScreen() {
     hasNextPage,
     isFetchingNextPage,
   } = useConversations();
+  const hideConversation = useHideConversation();
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useRealtimeConversationList(userId);
 
@@ -80,6 +83,33 @@ export default function ChatScreen() {
     }
   }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
+  const handleDeletePress = useCallback(
+    (conversationId: string) => {
+      const conversation = conversations.find((item) => item.id === conversationId);
+      const title = conversation?.other_user.display_name ?? 'this chat';
+
+      Alert.alert(
+        'Delete chat?',
+        `Messages with ${title} will be removed from your inbox.`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: () => {
+              setDeletingId(conversationId);
+              hideConversation.mutate(
+                { conversationId },
+                { onSettled: () => setDeletingId(null) }
+              );
+            },
+          },
+        ]
+      );
+    },
+    [conversations, hideConversation]
+  );
+
   const keyExtractor = useCallback((item: ConversationPreview) => item.id, []);
 
   const renderItem = useCallback(
@@ -88,9 +118,11 @@ export default function ChatScreen() {
         conversation={item}
         onPress={handleConversationPress}
         onPressIn={handleConversationPressIn}
+        onDeletePress={handleDeletePress}
+        isDeleting={deletingId === item.id && hideConversation.isPending}
       />
     ),
-    [handleConversationPress, handleConversationPressIn]
+    [deletingId, handleConversationPress, handleConversationPressIn, handleDeletePress, hideConversation.isPending]
   );
 
   const showSkeleton = isPending && conversations.length === 0;
