@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Alert, Pressable, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useRouter, type Href } from 'expo-router';
 import { FileText } from 'lucide-react-native';
@@ -14,6 +14,7 @@ import { PostListingBar } from '@/src/features/listings/components/PostListingBa
 import { useMyListings } from '@/src/features/listings/hooks/use-my-listings';
 import { useDeleteListing } from '@/src/features/listings/hooks/use-delete-listing';
 import type { MyListingItem } from '@/src/features/listings/types';
+import { confirmDestructive } from '@/src/lib/confirm';
 import { useRequireAuth } from '@/src/hooks/use-require-auth';
 import { useResponsive, getTabBarHeight } from '@/src/hooks/use-responsive';
 import { useTheme } from '@/src/hooks/use-theme';
@@ -76,24 +77,17 @@ export default function MyListingsTabScreen() {
       const listing = listings.find((item) => item.id === id);
       if (!listing) return;
 
-      Alert.alert(
-        'Delete listing?',
-        `"${listing.title}" will be removed permanently.`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Delete',
-            style: 'destructive',
-            onPress: () => {
-              setDeletingId(id);
-              deleteListing.mutate(
-                { listingId: id, stayOnScreen: true },
-                { onSettled: () => setDeletingId(null) }
-              );
-            },
-          },
-        ]
-      );
+      confirmDestructive({
+        title: 'Delete listing?',
+        message: `"${listing.title}" will be removed permanently.`,
+        onConfirm: () => {
+          setDeletingId(id);
+          deleteListing.mutate(
+            { listingId: id, stayOnScreen: true },
+            { onSettled: () => setDeletingId(null) }
+          );
+        },
+      });
     },
     [deleteListing, listings]
   );

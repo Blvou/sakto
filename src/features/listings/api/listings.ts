@@ -207,6 +207,7 @@ export async function createListing(
       price: input.price,
       location: input.location,
       category: input.category ?? null,
+      attributes: input.attributes ?? {},
       image_url: coverUrl,
       status: 'active',
     })
@@ -283,6 +284,7 @@ export async function updateListing(
       price: input.price,
       location: input.location,
       category: input.category ?? null,
+      attributes: input.attributes ?? {},
       ...(input.status ? { status: input.status } : {}),
     })
     .eq('id', listingId)

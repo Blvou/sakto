@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { Bell, ChevronDown, MapPin, MessageCircle } from 'lucide-react-native';
+import { Bell, ChevronDown, MapPin } from 'lucide-react-native';
 import { useTheme } from '@/src/hooks/use-theme';
 import { useResponsive } from '@/src/hooks/use-responsive';
 import { typography } from '@/src/design-system/tokens';
@@ -10,7 +10,6 @@ interface HomeHeaderProps {
   notificationCount?: number;
   onLocationPress?: () => void;
   onNotificationsPress?: () => void;
-  onChatPress?: () => void;
 }
 
 export const HomeHeader = memo(function HomeHeader({
@@ -18,7 +17,6 @@ export const HomeHeader = memo(function HomeHeader({
   notificationCount = 0,
   onLocationPress,
   onNotificationsPress,
-  onChatPress,
 }: HomeHeaderProps) {
   const { colors } = useTheme();
   const { isSmallScreen, horizontalPadding } = useResponsive();
@@ -106,14 +104,6 @@ export const HomeHeader = memo(function HomeHeader({
               </Text>
             </View>
           )}
-        </Pressable>
-        <Pressable
-          onPress={onChatPress}
-          style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}
-          accessibilityRole="button"
-          accessibilityLabel="Messages"
-        >
-          <MessageCircle color={colors.textPrimary} size={22} strokeWidth={1.5} />
         </Pressable>
       </View>
     </View>

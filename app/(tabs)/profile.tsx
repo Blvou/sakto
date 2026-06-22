@@ -21,9 +21,9 @@ import { signOut } from '@/src/features/auth/api/auth-api';
 import { Avatar } from '@/src/design-system/components/Avatar';
 import { useMyProfile } from '@/src/features/profile/hooks/use-my-profile';
 import { useProfileStats } from '@/src/features/profile/hooks/use-profile-stats';
+import { useListingStats } from '@/src/features/listings/hooks/use-listing-stats';
 import { ImageCropModal } from '@/src/features/media/components/ImageCropModal';
 import { useUploadAvatar } from '@/src/features/profile/hooks/use-upload-avatar';
-import { useMyVehicles } from '@/src/features/rentals/hooks/use-my-vehicles';
 import { typography } from '@/src/design-system/tokens';
 import { useUnreadNotificationCount } from '@/src/features/notifications/hooks/use-user-notifications';
 
@@ -45,6 +45,7 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { data: profile } = useMyProfile();
   const stats = useProfileStats();
+  const { data: listingStats } = useListingStats();
   const unreadNotifications = useUnreadNotificationCount();
   const {
     pickAvatar,
@@ -53,9 +54,8 @@ export default function ProfileScreen() {
     cancelCrop,
     isPending: isAvatarPending,
   } = useUploadAvatar();
-  const { data: myVehicles = [] } = useMyVehicles();
 
-  const bikesCount = myVehicles.length;
+  const listedCount = listingStats?.total ?? 0;
 
   const displayName =
     profile?.display_name ??
@@ -123,7 +123,7 @@ export default function ProfileScreen() {
 
         <View style={{ flexDirection: 'row', marginTop: 16, gap: 12 }}>
           {[
-            { label: 'Listed', value: String(bikesCount) },
+            { label: 'Listed', value: String(listedCount) },
             { label: 'Trips', value: String(stats.trips) },
             { label: 'Rating', value: stats.rating != null ? stats.rating.toFixed(1) : '—' },
           ].map((stat) => (

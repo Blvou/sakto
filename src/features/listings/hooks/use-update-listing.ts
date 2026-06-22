@@ -35,6 +35,7 @@ export function useUpdateListing() {
       queryClient.invalidateQueries({ queryKey: listingQueryKeys.list });
       if (userId) {
         queryClient.invalidateQueries({ queryKey: listingQueryKeys.mine(userId) });
+        queryClient.invalidateQueries({ queryKey: listingQueryKeys.stats(userId) });
       }
       queryClient.invalidateQueries({ queryKey: listingQueryKeys.detail(listingId) });
       toast.success('Listing updated');

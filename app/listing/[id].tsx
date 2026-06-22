@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { ArrowLeft, Flag, Heart, MapPin, MessageCircle, Pencil, Trash2 } from 'lucide-react-native';
 import { Avatar } from '@/src/design-system/components/Avatar';
@@ -22,6 +22,7 @@ import { resolveListingSpecs } from '@/src/features/listings/utils/listing-specs
 import type { ListingCardItem } from '@/src/features/listings/types';
 import { useAuth } from '@/src/features/auth/hooks/use-auth';
 import { useRequireAuth } from '@/src/hooks/use-require-auth';
+import { confirmDestructive } from '@/src/lib/confirm';
 import { useResponsive } from '@/src/hooks/use-responsive';
 import { useTheme } from '@/src/hooks/use-theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -122,18 +123,11 @@ export default function ListingDetailScreen() {
   const handleDeletePress = useCallback(() => {
     if (!id || !listing || !isOwnListing) return;
 
-    Alert.alert(
-      'Delete listing?',
-      `"${listing.title}" will be removed permanently.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => deleteListing.mutate({ listingId: id }),
-        },
-      ]
-    );
+    confirmDestructive({
+      title: 'Delete listing?',
+      message: `"${listing.title}" will be removed permanently.`,
+      onConfirm: () => deleteListing.mutate({ listingId: id }),
+    });
   }, [deleteListing, id, isOwnListing, listing]);
 
   if (isLoading) {

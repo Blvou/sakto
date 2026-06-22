@@ -1,5 +1,11 @@
 import { z } from 'zod';
+import { sanitizeListingAttributes } from './utils/sanitize-attributes';
 import { LISTING_REPORT_REASONS } from './types';
+
+export const listingAttributesSchema = z
+  .record(z.string(), z.string())
+  .optional()
+  .transform((value) => sanitizeListingAttributes(value));
 
 export const createListingSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters').max(120),
@@ -7,6 +13,7 @@ export const createListingSchema = z.object({
   price: z.coerce.number().positive('Price must be greater than 0'),
   location: z.string().min(2, 'Location is required').max(100),
   category: z.string().min(1).max(50).optional(),
+  attributes: listingAttributesSchema,
   imageUrl: z.string().url().optional().or(z.literal('')),
 });
 

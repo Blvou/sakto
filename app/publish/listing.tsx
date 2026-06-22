@@ -15,12 +15,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
 import { typography } from '@/src/design-system/tokens';
 import { LISTING_CATEGORIES } from '@/src/features/listings/constants/categories';
+import { ListingAttributesFields } from '@/src/features/listings/components/ListingAttributesFields';
 import { ListingPhotoPicker } from '@/src/features/listings/components/ListingPhotoPicker';
 import { useCreateListing } from '@/src/features/listings/hooks/use-create-listing';
 import { useListingPhotoDrafts } from '@/src/features/listings/hooks/use-listing-photo-drafts';
 import { createListingMutationSchema } from '@/src/features/listings/schemas';
 import { useTheme } from '@/src/hooks/use-theme';
 import { useRequireAuth } from '@/src/hooks/use-require-auth';
+import type { ListingAttributes } from '@/src/features/listings/types';
 
 export default function PublishListingScreen() {
   const { colors } = useTheme();
@@ -38,6 +40,7 @@ export default function PublishListingScreen() {
   const [category, setCategory] = useState(
     typeof categoryParam === 'string' ? categoryParam : 'marketplace'
   );
+  const [attributes, setAttributes] = useState<ListingAttributes>({});
 
   useEffect(() => {
     requireAuth({ message: 'Sign in to post a listing', returnTo: '/publish/listing' as Href });
@@ -65,6 +68,7 @@ export default function PublishListingScreen() {
       price,
       location,
       category: category === 'marketplace' ? undefined : category,
+      attributes,
       photos: photos.map((photo) => ({
         uri: photo.uri,
         mediaId: photo.mediaId,
@@ -77,7 +81,7 @@ export default function PublishListingScreen() {
     }
 
     createListing.mutate(parsed.data);
-  }, [category, createListing, description, location, photos, price, title]);
+  }, [attributes, category, createListing, description, location, photos, price, title]);
 
   return (
     <KeyboardAvoidingView
@@ -231,6 +235,8 @@ export default function PublishListingScreen() {
             marginBottom: 24,
           }}
         />
+
+        <ListingAttributesFields value={attributes} onChange={setAttributes} />
 
         <Pressable
           onPress={handlePublish}

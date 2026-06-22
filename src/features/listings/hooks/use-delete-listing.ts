@@ -26,6 +26,7 @@ export function useDeleteListing() {
       queryClient.invalidateQueries({ queryKey: listingQueryKeys.list });
       if (userId) {
         queryClient.invalidateQueries({ queryKey: listingQueryKeys.mine(userId) });
+        queryClient.invalidateQueries({ queryKey: listingQueryKeys.stats(userId) });
       }
       queryClient.removeQueries({ queryKey: listingQueryKeys.detail(listingId) });
       toast.success('Listing deleted');

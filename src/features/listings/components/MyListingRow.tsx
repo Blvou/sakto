@@ -72,7 +72,10 @@ export const MyListingRow = memo(function MyListingRow({
       </View>
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
         <Pressable
-          onPress={() => onEditPress(listing.id)}
+          onPress={(event) => {
+            event.stopPropagation();
+            onEditPress(listing.id);
+          }}
           hitSlop={8}
           disabled={isDeleting}
           accessibilityRole="button"
@@ -82,7 +85,10 @@ export const MyListingRow = memo(function MyListingRow({
           <Pencil color={colors.textSecondary} size={18} strokeWidth={1.75} />
         </Pressable>
         <Pressable
-          onPress={() => onDeletePress(listing.id)}
+          onPress={(event) => {
+            event.stopPropagation();
+            onDeletePress(listing.id);
+          }}
           hitSlop={8}
           disabled={isDeleting}
           accessibilityRole="button"

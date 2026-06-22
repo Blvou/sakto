@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, Trash2 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
 import { typography } from '@/src/design-system/tokens';
 import { LISTING_CATEGORIES } from '@/src/features/listings/constants/categories';
+import { ListingAttributesFields } from '@/src/features/listings/components/ListingAttributesFields';
 import { ListingPhotoPicker } from '@/src/features/listings/components/ListingPhotoPicker';
 import { useListing } from '@/src/features/listings/hooks/use-listing';
 import { useDeleteListing } from '@/src/features/listings/hooks/use-delete-listing';
@@ -14,6 +15,8 @@ import { useUpdateListing } from '@/src/features/listings/hooks/use-update-listi
 import { updateListingMutationSchema } from '@/src/features/listings/schemas';
 import { useTheme } from '@/src/hooks/use-theme';
 import { useRequireAuth } from '@/src/hooks/use-require-auth';
+import { confirmDestructive } from '@/src/lib/confirm';
+import type { ListingAttributes } from '@/src/features/listings/types';
 
 export default function EditListingScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -33,6 +36,7 @@ export default function EditListingScreen() {
   const [price, setPrice] = useState('');
   const [location, setLocation] = useState('');
   const [category, setCategory] = useState('electronics');
+  const [attributes, setAttributes] = useState<ListingAttributes>({});
 
   useEffect(() => {
     requireAuth({ message: 'Sign in to edit a listing', returnTo: `/listing/${id}/edit` });
@@ -45,6 +49,7 @@ export default function EditListingScreen() {
     setPrice(String(listing.price));
     setLocation(listing.location ?? '');
     setCategory(listing.category ?? 'electronics');
+    setAttributes(listing.attributes ?? {});
     setFromExistingMedia(listing.media);
     setPreviousPhotoUrls(listing.media_urls);
   }, [listing, setFromExistingMedia]);
@@ -62,6 +67,7 @@ export default function EditListingScreen() {
       price,
       location,
       category,
+      attributes,
       photos: photos.map((photo) => ({
         uri: photo.uri,
         mediaId: photo.mediaId,
@@ -75,23 +81,16 @@ export default function EditListingScreen() {
     }
 
     updateListing.mutate({ listingId: id, input: parsed.data });
-  }, [category, description, id, location, photos, previousPhotoUrls, price, title, updateListing]);
+  }, [attributes, category, description, id, location, photos, previousPhotoUrls, price, title, updateListing]);
 
   const handleDelete = useCallback(() => {
     if (!id || !listing) return;
 
-    Alert.alert(
-      'Delete listing?',
-      `"${listing.title}" will be removed permanently.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => deleteListing.mutate({ listingId: id }),
-        },
-      ]
-    );
+    confirmDestructive({
+      title: 'Delete listing?',
+      message: `"${listing.title}" will be removed permanently.`,
+      onConfirm: () => deleteListing.mutate({ listingId: id }),
+    });
   }, [deleteListing, id, listing]);
 
   const selectedCategory = useMemo(
@@ -246,6 +245,8 @@ export default function EditListingScreen() {
             marginBottom: 24,
           }}
         />
+
+        <ListingAttributesFields value={attributes} onChange={setAttributes} />
 
         <Pressable
           onPress={handleSave}

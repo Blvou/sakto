@@ -29,6 +29,7 @@ export function useCreateListing() {
       queryClient.invalidateQueries({ queryKey: listingQueryKeys.list });
       if (userId) {
         queryClient.invalidateQueries({ queryKey: listingQueryKeys.mine(userId) });
+        queryClient.invalidateQueries({ queryKey: listingQueryKeys.stats(userId) });
       }
       toast.success('Listing published');
       router.replace(`/listing/${listingId}`);

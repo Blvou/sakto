@@ -32,10 +32,6 @@ export default function HomeScreen() {
     filter: DEFAULT_VEHICLE_FILTER,
   });
 
-  const handleChatPress = useCallback(() => {
-    router.push('/(tabs)/chat');
-  }, [router]);
-
   const handleNotificationsPress = useCallback(() => {
     router.push('/notifications' as Href);
   }, [router]);
@@ -53,7 +49,6 @@ export default function HomeScreen() {
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <HomeHeader
         notificationCount={notificationCount}
-        onChatPress={handleChatPress}
         onNotificationsPress={handleNotificationsPress}
       />
 
