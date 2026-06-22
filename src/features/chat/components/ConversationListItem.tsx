@@ -93,7 +93,10 @@ export const ConversationListItem = memo(function ConversationListItem({
       )}
       {onDeletePress ? (
         <Pressable
-          onPress={() => onDeletePress(conversation.id)}
+          onPress={(event) => {
+            event.stopPropagation();
+            onDeletePress(conversation.id);
+          }}
           disabled={isDeleting}
           hitSlop={8}
           accessibilityRole="button"

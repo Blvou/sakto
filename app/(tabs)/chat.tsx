@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
-import { Alert, View, Text, ActivityIndicator, Pressable } from 'react-native';
+import { View, Text, ActivityIndicator, Pressable } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/src/hooks/use-theme';
@@ -15,6 +15,7 @@ import { useHideConversation } from '@/src/features/chat/hooks/use-hide-conversa
 import { useRealtimeConversationList } from '@/src/features/chat/hooks/use-realtime-conversation-list';
 import { prefetchThreadSnapshot, prefetchConversations } from '@/src/features/chat/utils/prefetch-chat';
 import type { ConversationPreview } from '@/src/features/chat/types';
+import { confirmDestructive } from '@/src/lib/confirm';
 
 function ChatSkeleton() {
   return (
@@ -88,24 +89,17 @@ export default function ChatScreen() {
       const conversation = conversations.find((item) => item.id === conversationId);
       const title = conversation?.other_user.display_name ?? 'this chat';
 
-      Alert.alert(
-        'Delete chat?',
-        `Messages with ${title} will be removed from your inbox.`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Delete',
-            style: 'destructive',
-            onPress: () => {
-              setDeletingId(conversationId);
-              hideConversation.mutate(
-                { conversationId },
-                { onSettled: () => setDeletingId(null) }
-              );
-            },
-          },
-        ]
-      );
+      confirmDestructive({
+        title: 'Delete chat?',
+        message: `Messages with ${title} will be removed from your inbox.`,
+        onConfirm: () => {
+          setDeletingId(conversationId);
+          hideConversation.mutate(
+            { conversationId },
+            { onSettled: () => setDeletingId(null) }
+          );
+        },
+      });
     },
     [conversations, hideConversation]
   );

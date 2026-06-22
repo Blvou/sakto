@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, View, Text, ActivityIndicator, InteractionManager } from 'react-native';
+import { View, Text, ActivityIndicator, InteractionManager } from 'react-native';
 import { FlashList, type FlashListRef } from '@shopify/flash-list';
 import { useLocalSearchParams } from 'expo-router';
 import { resolveUserTargetLang } from '@/src/features/chat/api/translate-utils';
@@ -29,6 +29,7 @@ import { useTranslateMessage } from '@/src/features/chat/hooks/use-translate-mes
 import { useHideConversation } from '@/src/features/chat/hooks/use-hide-conversation';
 import type { Message } from '@/src/features/chat/types';
 import type { PreferredLang } from '@/src/lib/database.types';
+import { confirmDestructive } from '@/src/lib/confirm';
 
 const EMPTY_DELIVERED = new Set<string>();
 
@@ -137,18 +138,11 @@ export default function ChatThreadScreen() {
   const handleDeletePress = useCallback(() => {
     if (!conversationId || !meta?.otherUser) return;
 
-    Alert.alert(
-      'Delete chat?',
-      `Messages with ${meta.otherUser.display_name} will be removed from your inbox.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => hideConversation.mutate({ conversationId, leaveThread: true }),
-        },
-      ]
-    );
+    confirmDestructive({
+      title: 'Delete chat?',
+      message: `Messages with ${meta.otherUser.display_name} will be removed from your inbox.`,
+      onConfirm: () => hideConversation.mutate({ conversationId, leaveThread: true }),
+    });
   }, [conversationId, hideConversation, meta?.otherUser]);
 
   const recipientLastReadAt = receiptState?.recipientLastReadAt ?? null;
