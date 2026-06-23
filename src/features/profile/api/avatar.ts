@@ -4,7 +4,24 @@ import { supabase } from '@/src/lib/supabase';
 const AVATAR_BUCKET = 'avatars';
 
 function avatarObjectPath(userId: string): string {
-  return `${userId}/avatar.jpg`;
+  return `${userId}/avatar-${Date.now()}.jpg`;
+}
+
+async function removeStaleAvatars(userId: string, keepPath: string): Promise<void> {
+  const { data: objects, error } = await supabase.storage.from(AVATAR_BUCKET).list(userId);
+  if (error || !objects?.length) return;
+
+  const keepName = keepPath.split('/').pop();
+  const stalePaths = objects
+    .filter((object) => object.name.startsWith('avatar') && object.name !== keepName)
+    .map((object) => `${userId}/${object.name}`);
+
+  if (stalePaths.length === 0) return;
+
+  const { error: removeError } = await supabase.storage.from(AVATAR_BUCKET).remove(stalePaths);
+  if (removeError) {
+    console.warn('Could not remove stale avatars:', removeError.message);
+  }
 }
 
 export async function uploadProfileAvatar(userId: string, imageBase64: string): Promise<string> {
@@ -14,15 +31,14 @@ export async function uploadProfileAvatar(userId: string, imageBase64: string): 
   const { error: uploadError } = await supabase.storage
     .from(AVATAR_BUCKET)
     .upload(path, arrayBuffer, {
-      upsert: true,
       contentType: 'image/jpeg',
-      cacheControl: '3600',
+      cacheControl: 'max-age=31536000, immutable',
     });
 
   if (uploadError) throw uploadError;
 
   const { data } = supabase.storage.from(AVATAR_BUCKET).getPublicUrl(path);
-  const avatarUrl = `${data.publicUrl}?v=${Date.now()}`;
+  const avatarUrl = data.publicUrl;
 
   const { error: profileError } = await supabase
     .from('profiles')
@@ -30,6 +46,8 @@ export async function uploadProfileAvatar(userId: string, imageBase64: string): 
     .eq('id', userId);
 
   if (profileError) throw profileError;
+
+  void removeStaleAvatars(userId, path);
 
   return avatarUrl;
 }

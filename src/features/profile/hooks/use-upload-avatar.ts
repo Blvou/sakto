@@ -5,6 +5,7 @@ import { toast } from 'sonner-native';
 import { getErrorMessage } from '@/src/lib/errors';
 import { useAuth } from '@/src/features/auth/hooks/use-auth';
 import type { CropRegion, PendingCropImage } from '@/src/features/media/types';
+import { listingQueryKeys } from '@/src/features/listings/types';
 import { uploadProfileAvatar } from '../api/avatar';
 import { prepareAvatarImage } from '../utils/prepare-avatar-image';
 import { profileQueryKeys, type Profile } from '../types';
@@ -27,6 +28,7 @@ export function useUploadAvatar() {
         current ? { ...current, avatar_url: avatarUrl } : current,
       );
       queryClient.invalidateQueries({ queryKey: profileQueryKeys.my(userId) });
+      void queryClient.invalidateQueries({ queryKey: listingQueryKeys.all });
       toast.success('Avatar updated');
     },
     onError: (err) => {

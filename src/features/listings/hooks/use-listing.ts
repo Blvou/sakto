@@ -42,6 +42,8 @@ export function useListing(id: string | undefined) {
       return fetchListingById(id);
     },
     enabled: !!id,
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 }
 

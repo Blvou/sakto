@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { View, Text } from 'react-native';
 import { Image } from 'expo-image';
 import { User } from 'lucide-react-native';
+import { avatarImageSource } from '@/src/features/profile/utils/avatar-image-source';
 import { useTheme } from '@/src/hooks/use-theme';
 
 function getInitials(name?: string): string {
@@ -30,10 +31,11 @@ export function Avatar({ uri, name, size = 48 }: AvatarProps) {
   if (uri && !imageFailed) {
     return (
       <Image
-        source={{ uri }}
+        source={avatarImageSource(uri)}
         style={{ width: size, height: size, borderRadius: size / 2 }}
         contentFit="cover"
         cachePolicy="memory-disk"
+        recyclingKey={uri}
         onError={() => setImageFailed(true)}
         accessibilityLabel={name ? `${name} avatar` : 'User avatar'}
       />
