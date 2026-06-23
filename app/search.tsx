@@ -25,19 +25,9 @@ import {
   type VehicleFilterOption,
 } from '@/src/features/rentals/utils/vehicle-filters';
 import type { VehicleCardItem } from '@/src/features/rentals/types';
+import { useDebouncedValue } from '@/src/hooks/use-debounced-value';
 import { useResponsive } from '@/src/hooks/use-responsive';
 import { useTheme } from '@/src/hooks/use-theme';
-
-function useDebouncedValue(value: string, delayMs: number): string {
-  const [debounced, setDebounced] = useState(value);
-
-  useEffect(() => {
-    const timeout = setTimeout(() => setDebounced(value), delayMs);
-    return () => clearTimeout(timeout);
-  }, [delayMs, value]);
-
-  return debounced;
-}
 
 const CATEGORY_FILTER = {
   nearby: 'Nearby',

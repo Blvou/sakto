@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, View } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
+import { GridSkeleton } from '@/src/design-system/components/ListSkeleton';
 import { useTheme } from '@/src/hooks/use-theme';
 import { useResponsive } from '@/src/hooks/use-responsive';
 import { HomeHeader } from '@/src/features/home/components/HomeHeader';
@@ -8,6 +9,11 @@ import { ServiceHubGrid } from '@/src/features/home/components/ServiceHubGrid';
 import { RecommendedListingsSection } from '@/src/features/home/components/RecommendedListingsSection';
 import { RentNearbySection } from '@/src/features/home/components/RentNearbySection';
 import { useUnreadNotificationCount } from '@/src/features/notifications/hooks/use-user-notifications';
+import { ListingSearchBar } from '@/src/features/listings/components/ListingSearchBar';
+import {
+  ListingSearchResults,
+  useListingSearchState,
+} from '@/src/features/listings/components/ListingSearchResults';
 import { useCategoryListings } from '@/src/features/listings/hooks/use-category-listings';
 import { useVehicles } from '@/src/features/rentals/hooks/use-vehicles';
 import { useUserLocation } from '@/src/features/rentals/hooks/use-user-location';
@@ -17,9 +23,11 @@ export default function HomeScreen() {
   const { colors } = useTheme();
   const router = useRouter();
   const notificationCount = useUnreadNotificationCount();
-  const { horizontalPadding, listBottomPadding } = useResponsive();
+  const { horizontalPadding, listBottomPadding, cardWidth } = useResponsive();
   const { coords: userCoords } = useUserLocation();
   const [refreshing, setRefreshing] = useState(false);
+  const { query, setQuery, debouncedQuery, isSearching } = useListingSearchState();
+  const isTyping = query.trim() !== debouncedQuery;
 
   const searchParams = useMemo(
     () => buildVehicleSearchParams(DEFAULT_VEHICLE_FILTER, undefined, userCoords),
@@ -52,23 +60,42 @@ export default function HomeScreen() {
         onNotificationsPress={handleNotificationsPress}
       />
 
-      <ScrollView
-        contentContainerStyle={{
-          paddingHorizontal: horizontalPadding,
-          paddingBottom: listBottomPadding,
-        }}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing || listingsRefetching || vehiclesRefetching}
-            onRefresh={onRefresh}
-            tintColor={colors.primary}
+      <ListingSearchBar
+        value={query}
+        onChangeText={setQuery}
+        placeholder="Search listings..."
+      />
+
+      {isSearching ? (
+        isTyping ? (
+          <View style={{ flex: 1, paddingHorizontal: horizontalPadding, paddingTop: 16 }}>
+            <GridSkeleton cardWidth={cardWidth} rows={3} />
+          </View>
+        ) : (
+          <ListingSearchResults
+            searchQuery={debouncedQuery}
+            returnTo={'/(tabs)' as Href}
           />
-        }
-      >
-        <ServiceHubGrid />
-        <RentNearbySection />
-        <RecommendedListingsSection />
-      </ScrollView>
+        )
+      ) : (
+        <ScrollView
+          contentContainerStyle={{
+            paddingHorizontal: horizontalPadding,
+            paddingBottom: listBottomPadding,
+          }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing || listingsRefetching || vehiclesRefetching}
+              onRefresh={onRefresh}
+              tintColor={colors.primary}
+            />
+          }
+        >
+          <ServiceHubGrid />
+          <RentNearbySection />
+          <RecommendedListingsSection />
+        </ScrollView>
+      )}
     </View>
   );
 }

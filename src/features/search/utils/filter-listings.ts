@@ -8,7 +8,7 @@ export interface CategorySection {
   listings: ListingCardItem[];
 }
 
-function matchesQuery(listing: ListingCardItem, query: string): boolean {
+export function matchesListingQuery(listing: ListingCardItem, query: string): boolean {
   const normalized = query.trim().toLowerCase();
   if (!normalized) return true;
 
@@ -25,7 +25,7 @@ export function filterBrowseListings(
   const { query = '', categoryId = null } = options;
 
   return listings.filter((listing) => {
-    if (!matchesQuery(listing, query)) return false;
+    if (!matchesListingQuery(listing, query)) return false;
     if (!categoryId) return true;
     if (categoryId === 'scooters') return false;
     if (categoryId === 'more') return listing.category === 'more';

@@ -81,10 +81,15 @@ function mockToCardItems(): ListingCardItem[] {
   }));
 }
 
+function sanitizeSearchTerm(value: string): string {
+  return value.trim().replace(/[%_]/g, '');
+}
+
 export async function fetchListingsPage(
   cursor?: ListingsPageCursor,
   limit = LISTINGS_PAGE_SIZE,
-  category?: string | null
+  category?: string | null,
+  searchQuery?: string | null
 ): Promise<ListingsPage> {
   let query = supabase
     .from('listings')
@@ -96,6 +101,11 @@ export async function fetchListingsPage(
 
   if (category) {
     query = query.eq('category', category);
+  }
+
+  const term = searchQuery ? sanitizeSearchTerm(searchQuery) : '';
+  if (term) {
+    query = query.or(`title.ilike.%${term}%,location.ilike.%${term}%`);
   }
 
   if (cursor) {

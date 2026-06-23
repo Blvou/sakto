@@ -1,34 +1,58 @@
 import { useMemo } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { shouldUseCatalogMock } from '@/src/lib/catalog';
+import { filterBrowseListings } from '@/src/features/search/utils/filter-listings';
 import { fetchListingsPage, mockToCardItems } from '../api/listings';
 import { listingQueryKeys, type ListingsPage, type ListingsPageCursor } from '../types';
 import { flattenListings } from '../utils/listings-cache';
 
-function filterMockByCategory(category: string | null | undefined) {
+function filterMockListings(category: string | null | undefined, searchQuery?: string) {
   const items = mockToCardItems();
-  if (!category) return items;
-  return items.filter((item) => item.category === category);
+  return filterBrowseListings(items, {
+    categoryId: category ?? null,
+    query: searchQuery,
+  });
 }
 
-export function useCategoryListings(category: string | null | undefined) {
+interface UseCategoryListingsOptions {
+  searchQuery?: string;
+}
+
+export function useCategoryListings(
+  category: string | null | undefined,
+  options: UseCategoryListingsOptions = {}
+) {
+  const { searchQuery = '' } = options;
   const useMock = shouldUseCatalogMock();
   const categoryKey = category ?? 'all';
+  const normalizedQuery = searchQuery.trim();
+  const queryKeySuffix = normalizedQuery || 'all';
 
   const mockPage: ListingsPage = useMemo(
     () => ({
-      items: filterMockByCategory(category),
+      items: filterMockListings(category, normalizedQuery || undefined),
       nextCursor: undefined,
     }),
-    [category]
+    [category, normalizedQuery]
   );
 
   const query = useInfiniteQuery({
-    queryKey: [...listingQueryKeys.list, 'category', categoryKey, useMock ? 'mock' : 'live'] as const,
+    queryKey: [
+      ...listingQueryKeys.list,
+      'category',
+      categoryKey,
+      queryKeySuffix,
+      useMock ? 'mock' : 'live',
+    ] as const,
     queryFn: async ({ pageParam }) => {
       if (useMock) return mockPage;
       try {
-        return await fetchListingsPage(pageParam, undefined, category ?? null);
+        return await fetchListingsPage(
+          pageParam,
+          undefined,
+          category ?? null,
+          normalizedQuery || null
+        );
       } catch {
         return mockPage;
       }

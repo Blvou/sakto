@@ -2,7 +2,7 @@ import { useCallback, useMemo } from 'react';
 import { RefreshControl, View } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
-import { Store } from 'lucide-react-native';
+import { Search, Store } from 'lucide-react-native';
 import { EmptyState } from '@/src/design-system/components/EmptyState';
 import { ErrorState } from '@/src/design-system/components/ErrorState';
 import { GridSkeleton } from '@/src/design-system/components/ListSkeleton';
@@ -12,6 +12,8 @@ import {
   getBrowseTitle,
   isListingBrowseSlug,
 } from '@/src/features/home/data/hub-categories';
+import { ListingSearchBar } from '@/src/features/listings/components/ListingSearchBar';
+import { useListingSearchState } from '@/src/features/listings/components/ListingSearchResults';
 import { useCategoryListings } from '@/src/features/listings/hooks/use-category-listings';
 import { useResponsive } from '@/src/hooks/use-responsive';
 import { useTheme } from '@/src/hooks/use-theme';
@@ -21,11 +23,13 @@ export default function BrowseCategoryScreen() {
   const { colors } = useTheme();
   const router = useRouter();
   const { cardWidth, horizontalPadding, listBottomPadding } = useResponsive();
+  const { query, setQuery, debouncedQuery } = useListingSearchState();
 
   const slug = category ?? 'marketplace';
   const isValidSlug = isListingBrowseSlug(slug);
   const dbCategory = slug === 'marketplace' ? null : slug;
   const title = getBrowseTitle(slug);
+  const returnTo = `/browse/${slug}` as Href;
 
   const {
     listings,
@@ -36,7 +40,7 @@ export default function BrowseCategoryScreen() {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useCategoryListings(isValidSlug ? dbCategory : null);
+  } = useCategoryListings(isValidSlug ? dbCategory : null, { searchQuery: debouncedQuery });
 
   const handleBack = useCallback(() => {
     router.back();
@@ -57,6 +61,17 @@ export default function BrowseCategoryScreen() {
 
   const listEmpty = useMemo(() => {
     if (isLoading || isError) return null;
+
+    if (debouncedQuery) {
+      return (
+        <EmptyState
+          icon={Search}
+          title="No results"
+          description={`Nothing matched "${debouncedQuery}" in ${title}. Try different keywords.`}
+        />
+      );
+    }
+
     return (
       <EmptyState
         icon={Store}
@@ -66,7 +81,7 @@ export default function BrowseCategoryScreen() {
         onAction={() => router.push('/browse/marketplace' as Href)}
       />
     );
-  }, [isError, isLoading, router, title]);
+  }, [debouncedQuery, isError, isLoading, router, title]);
 
   if (!isValidSlug) {
     return (
@@ -87,8 +102,14 @@ export default function BrowseCategoryScreen() {
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <ScreenHeader title={title} onBack={handleBack} />
 
+      <ListingSearchBar
+        value={query}
+        onChangeText={setQuery}
+        placeholder={`Search in ${title}...`}
+      />
+
       {isLoading ? (
-        <View style={{ paddingHorizontal: horizontalPadding, paddingTop: 16 }}>
+        <View style={{ flex: 1, paddingHorizontal: horizontalPadding, paddingTop: 16 }}>
           <GridSkeleton cardWidth={cardWidth} rows={3} />
         </View>
       ) : isError ? (
@@ -103,7 +124,7 @@ export default function BrowseCategoryScreen() {
               listing={item}
               cardWidth={cardWidth}
               onPress={handleListingPress}
-              returnTo={`/browse/${slug}` as Href}
+              returnTo={returnTo}
             />
           )}
           contentContainerStyle={{
