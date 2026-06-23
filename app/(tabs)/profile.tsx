@@ -1,5 +1,6 @@
+import { useCallback } from 'react';
 import { View, Text, ScrollView, Pressable, Switch, ActivityIndicator } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter, type Href } from 'expo-router';
 import {
   Bike,
   Bell,
@@ -27,6 +28,8 @@ import { useUploadAvatar } from '@/src/features/profile/hooks/use-upload-avatar'
 import { typography } from '@/src/design-system/tokens';
 import { useUnreadNotificationCount } from '@/src/features/notifications/hooks/use-user-notifications';
 
+const PROFILE_RETURN_TO = '/(tabs)/profile' as Href;
+
 const MENU_ITEMS = [
   { icon: Bike, label: 'My bikes', route: '/my-listings' as const },
   { icon: Calendar, label: 'My bookings', route: '/bookings' as const },
@@ -41,7 +44,7 @@ export default function ProfileScreen() {
   const cardStyle = useCardStyle();
   const cardLgStyle = useCardStyle({ borderRadius: 16 });
   const setColorScheme = useAppStore((s) => s.setColorScheme);
-  const { user, userId } = useAuth();
+  const { user, userId, isInitialized } = useAuth();
   const router = useRouter();
   const { data: profile } = useMyProfile();
   const stats = useProfileStats();
@@ -72,6 +75,25 @@ export default function ProfileScreen() {
       toast.error(message);
     }
   };
+
+  useFocusEffect(
+    useCallback(() => {
+      if (isInitialized && !userId) {
+        router.replace({
+          pathname: '/(auth)/login',
+          params: { returnTo: String(PROFILE_RETURN_TO) },
+        });
+      }
+    }, [isInitialized, router, userId])
+  );
+
+  if (!isInitialized || !userId) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator color={colors.primary} />
+      </View>
+    );
+  }
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.background }} contentContainerStyle={{ paddingBottom: 32 }}>
