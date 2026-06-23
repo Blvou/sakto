@@ -4,6 +4,7 @@ import { useAuth } from '@/src/features/auth/hooks/use-auth';
 import type { ListingCardItem } from '@/src/features/listings/types';
 import { getErrorMessage } from '@/src/lib/errors';
 import { toggleFavorite } from '../api/favorites';
+import { toggleGuestFavorite } from '../storage/guest-favorites';
 import { favoriteQueryKeys } from './use-favorites';
 
 interface ToggleFavoriteInput {
@@ -16,20 +17,22 @@ export function useToggleFavorite() {
   const { userId } = useAuth();
   const queryClient = useQueryClient();
 
+  const idsKey = userId ? favoriteQueryKeys.ids(userId) : favoriteQueryKeys.guestIds;
+  const listKey = userId ? favoriteQueryKeys.list(userId) : favoriteQueryKeys.guestList;
+
   return useMutation({
-    mutationFn: async ({ listingId, isFavorite }: ToggleFavoriteInput) => {
-      if (!userId) throw new Error('Not authenticated');
-      return toggleFavorite(userId, listingId, isFavorite);
+    mutationFn: async ({ listingId, isFavorite, listing }: ToggleFavoriteInput) => {
+      if (userId) {
+        return toggleFavorite(userId, listingId, isFavorite);
+      }
+      return toggleGuestFavorite(listingId, isFavorite, listing);
     },
     onMutate: async ({ listingId, isFavorite, listing }) => {
-      if (!userId) return;
+      await queryClient.cancelQueries({ queryKey: idsKey });
+      await queryClient.cancelQueries({ queryKey: listKey });
 
-      await queryClient.cancelQueries({ queryKey: favoriteQueryKeys.ids(userId) });
-      await queryClient.cancelQueries({ queryKey: favoriteQueryKeys.list(userId) });
-
-      const previousIds = queryClient.getQueryData<string[]>(favoriteQueryKeys.ids(userId)) ?? [];
-      const previousList =
-        queryClient.getQueryData<ListingCardItem[]>(favoriteQueryKeys.list(userId)) ?? [];
+      const previousIds = queryClient.getQueryData<string[]>(idsKey) ?? [];
+      const previousList = queryClient.getQueryData<ListingCardItem[]>(listKey) ?? [];
 
       const nextIds = isFavorite
         ? previousIds.filter((id) => id !== listingId)
@@ -41,21 +44,20 @@ export function useToggleFavorite() {
           ? [{ ...listing, liked: true }, ...previousList.filter((item) => item.id !== listingId)]
           : previousList;
 
-      queryClient.setQueryData(favoriteQueryKeys.ids(userId), nextIds);
-      queryClient.setQueryData(favoriteQueryKeys.list(userId), nextList);
+      queryClient.setQueryData(idsKey, nextIds);
+      queryClient.setQueryData(listKey, nextList);
 
       return { previousIds, previousList };
     },
     onError: (err, _vars, context) => {
-      if (!userId || !context) return;
-      queryClient.setQueryData(favoriteQueryKeys.ids(userId), context.previousIds);
-      queryClient.setQueryData(favoriteQueryKeys.list(userId), context.previousList);
+      if (!context) return;
+      queryClient.setQueryData(idsKey, context.previousIds);
+      queryClient.setQueryData(listKey, context.previousList);
       toast.error(getErrorMessage(err, 'Could not update favorites'));
     },
     onSettled: () => {
-      if (!userId) return;
-      queryClient.invalidateQueries({ queryKey: favoriteQueryKeys.list(userId) });
-      queryClient.invalidateQueries({ queryKey: favoriteQueryKeys.ids(userId) });
+      void queryClient.invalidateQueries({ queryKey: listKey });
+      void queryClient.invalidateQueries({ queryKey: idsKey });
     },
   });
 }

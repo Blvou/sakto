@@ -3,12 +3,14 @@ import { useFocusEffect } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { View, Text, ActivityIndicator, Pressable } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
+import { MessageCircle } from 'lucide-react-native';
 import { useTheme } from '@/src/hooks/use-theme';
 import { useResponsive } from '@/src/hooks/use-responsive';
 import { useAuth } from '@/src/features/auth/hooks/use-auth';
 import { chatTypography } from '@/src/features/chat/constants/typography';
 import { Skeleton } from '@/src/design-system/components/Skeleton';
+import { EmptyState } from '@/src/design-system/components/EmptyState';
 import { ConversationListItem } from '@/src/features/chat/components/ConversationListItem';
 import { useConversations } from '@/src/features/chat/hooks/use-conversations';
 import { useHideConversation } from '@/src/features/chat/hooks/use-hide-conversation';
@@ -16,6 +18,9 @@ import { useRealtimeConversationList } from '@/src/features/chat/hooks/use-realt
 import { prefetchThreadSnapshot, prefetchConversations } from '@/src/features/chat/utils/prefetch-chat';
 import type { ConversationPreview } from '@/src/features/chat/types';
 import { confirmDestructive } from '@/src/lib/confirm';
+import { useRequireAuth } from '@/src/hooks/use-require-auth';
+
+const CHAT_RETURN_TO = '/(tabs)/chat' as Href;
 
 function ChatSkeleton() {
   return (
@@ -38,7 +43,8 @@ export default function ChatScreen() {
   const { horizontalPadding, listBottomPadding } = useResponsive();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { userId } = useAuth();
+  const { userId, isInitialized } = useAuth();
+  const requireAuth = useRequireAuth();
   const {
     conversations,
     isPending,
@@ -53,6 +59,14 @@ export default function ChatScreen() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useRealtimeConversationList(userId);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (isInitialized && !userId) {
+        requireAuth({ message: 'Sign in to view messages', returnTo: CHAT_RETURN_TO });
+      }
+    }, [isInitialized, requireAuth, userId])
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -119,7 +133,24 @@ export default function ChatScreen() {
     [deletingId, handleConversationPress, handleConversationPressIn, handleDeletePress, hideConversation.isPending]
   );
 
-  const showSkeleton = isPending && conversations.length === 0;
+  const showSkeleton = !!userId && isPending && conversations.length === 0;
+
+  if (!userId) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
+        <View style={{ paddingTop: 56, paddingHorizontal: horizontalPadding, paddingBottom: 16 }}>
+          <Text style={{ ...chatTypography.title, color: colors.textPrimary }}>Messages</Text>
+        </View>
+        <EmptyState
+          icon={MessageCircle}
+          title="Sign in to view messages"
+          description="Start a chat from any listing to connect with sellers."
+          actionLabel="Sign in"
+          onAction={() => requireAuth({ message: 'Sign in to view messages', returnTo: CHAT_RETURN_TO })}
+        />
+      </View>
+    );
+  }
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>

@@ -89,7 +89,6 @@ export function ListingSearchResults({
           listing={item}
           cardWidth={cardWidth}
           onPress={handleListingPress}
-          returnTo={returnTo}
         />
       )}
       contentContainerStyle={{

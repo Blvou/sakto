@@ -142,7 +142,6 @@ export function HomeSearchResults({ searchQuery, returnTo }: HomeSearchResultsPr
                 listing={listing}
                 cardWidth={cardWidth}
                 onPress={handleListingPress}
-                returnTo={returnTo}
               />
             ))}
           </View>

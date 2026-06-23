@@ -124,7 +124,6 @@ export default function BrowseCategoryScreen() {
               listing={item}
               cardWidth={cardWidth}
               onPress={handleListingPress}
-              returnTo={returnTo}
             />
           )}
           contentContainerStyle={{

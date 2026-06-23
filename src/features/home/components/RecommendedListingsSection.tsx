@@ -76,7 +76,6 @@ export const RecommendedListingsSection = memo(function RecommendedListingsSecti
             listing={listing}
             cardWidth={cardWidth}
             onPress={handleListingPress}
-            returnTo={'/(tabs)' as Href}
           />
         ))}
       </ScrollView>

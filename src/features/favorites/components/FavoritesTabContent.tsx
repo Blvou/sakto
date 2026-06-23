@@ -40,25 +40,8 @@ export function FavoritesTabContent({ returnTo = '/(tabs)/favorites' as Href }: 
   }, [router]);
 
   const handleSignIn = useCallback(() => {
-    requireAuth({ message: 'Sign in to view favorites', returnTo });
+    requireAuth({ message: 'Sign in to sync favorites across devices', returnTo });
   }, [requireAuth, returnTo]);
-
-  if (!userId) {
-    return (
-      <View style={{ flex: 1, backgroundColor: colors.background, paddingTop: insets.top + 56 }}>
-        <View style={{ paddingHorizontal: horizontalPadding }}>
-          <Text style={{ ...typography.h1, color: colors.textPrimary, marginBottom: 16 }}>Favorites</Text>
-        </View>
-        <EmptyState
-          icon={Heart}
-          title="Sign in to save favorites"
-          description="Tap the heart on any listing to add it here."
-          actionLabel="Sign in"
-          onAction={handleSignIn}
-        />
-      </View>
-    );
-  }
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background, paddingTop: insets.top + 56 }}>
@@ -78,12 +61,7 @@ export function FavoritesTabContent({ returnTo = '/(tabs)/favorites' as Href }: 
           numColumns={2}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <FavoriteListingCard
-              listing={item}
-              cardWidth={cardWidth}
-              onPress={handleListingPress}
-              returnTo={returnTo}
-            />
+            <FavoriteListingCard listing={item} cardWidth={cardWidth} onPress={handleListingPress} />
           )}
           contentContainerStyle={{
             paddingHorizontal: horizontalPadding,
@@ -93,7 +71,21 @@ export function FavoritesTabContent({ returnTo = '/(tabs)/favorites' as Href }: 
             <RefreshControl refreshing={isRefetching} onRefresh={() => refetch()} tintColor={colors.primary} />
           }
           ListHeaderComponent={
-            <Text style={{ ...typography.h1, color: colors.textPrimary, marginBottom: 16 }}>Favorites</Text>
+            <View style={{ marginBottom: 16, gap: 8 }}>
+              <Text style={{ ...typography.h1, color: colors.textPrimary }}>Favorites</Text>
+              {!userId ? (
+                <Text style={{ ...typography.caption, color: colors.textSecondary }}>
+                  Saved on this device.{' '}
+                  <Text
+                    onPress={handleSignIn}
+                    style={{ color: colors.primary, fontFamily: 'PlusJakartaSans_600SemiBold' }}
+                  >
+                    Sign in
+                  </Text>{' '}
+                  to sync across devices.
+                </Text>
+              ) : null}
+            </View>
           }
           ListEmptyComponent={
             <EmptyState

@@ -66,9 +66,6 @@ export default function ListingDetailScreen() {
 
   const handleFavoritePress = useCallback(() => {
     if (!id || !listing) return;
-    if (!requireAuth({ message: 'Sign in to save favorites', returnTo: `/listing/${id}` as Href })) {
-      return;
-    }
 
     const cardListing: ListingCardItem = {
       id: listing.id,
@@ -82,7 +79,7 @@ export default function ListingDetailScreen() {
     };
 
     toggleFavorite({ listingId: id, isFavorite, listing: cardListing });
-  }, [id, isFavorite, listing, requireAuth, toggleFavorite]);
+  }, [id, isFavorite, listing, toggleFavorite]);
 
   const handleChatPress = useCallback(() => {
     if (!id || !listing) return;

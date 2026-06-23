@@ -12,6 +12,7 @@ import {
   LogOut,
   Settings,
   Star,
+  User,
 } from 'lucide-react-native';
 import { toast } from 'sonner-native';
 import { useTheme } from '@/src/hooks/use-theme';
@@ -20,6 +21,7 @@ import { useAppStore } from '@/src/stores/app-store';
 import { useAuth } from '@/src/features/auth/hooks/use-auth';
 import { signOut } from '@/src/features/auth/api/auth-api';
 import { Avatar } from '@/src/design-system/components/Avatar';
+import { EmptyState } from '@/src/design-system/components/EmptyState';
 import { useMyProfile } from '@/src/features/profile/hooks/use-my-profile';
 import { useProfileStats } from '@/src/features/profile/hooks/use-profile-stats';
 import { useListingStats } from '@/src/features/listings/hooks/use-listing-stats';
@@ -27,6 +29,7 @@ import { ImageCropModal } from '@/src/features/media/components/ImageCropModal';
 import { useUploadAvatar } from '@/src/features/profile/hooks/use-upload-avatar';
 import { typography } from '@/src/design-system/tokens';
 import { useUnreadNotificationCount } from '@/src/features/notifications/hooks/use-user-notifications';
+import { useRequireAuth } from '@/src/hooks/use-require-auth';
 
 const PROFILE_RETURN_TO = '/(tabs)/profile' as Href;
 
@@ -46,6 +49,7 @@ export default function ProfileScreen() {
   const setColorScheme = useAppStore((s) => s.setColorScheme);
   const { user, userId, isInitialized } = useAuth();
   const router = useRouter();
+  const requireAuth = useRequireAuth();
   const { data: profile } = useMyProfile();
   const stats = useProfileStats();
   const { data: listingStats } = useListingStats();
@@ -79,18 +83,29 @@ export default function ProfileScreen() {
   useFocusEffect(
     useCallback(() => {
       if (isInitialized && !userId) {
-        router.replace({
-          pathname: '/(auth)/login',
-          params: { returnTo: String(PROFILE_RETURN_TO) },
-        });
+        requireAuth({ message: 'Sign in to view your profile', returnTo: PROFILE_RETURN_TO });
       }
-    }, [isInitialized, router, userId])
+    }, [isInitialized, requireAuth, userId])
   );
 
-  if (!isInitialized || !userId) {
+  if (!isInitialized) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center' }}>
         <ActivityIndicator color={colors.primary} />
+      </View>
+    );
+  }
+
+  if (!userId) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.background, paddingTop: 56 }}>
+        <EmptyState
+          icon={User}
+          title="Sign in to view your profile"
+          description="Manage your listings, bookings, and account settings."
+          actionLabel="Sign in"
+          onAction={() => requireAuth({ message: 'Sign in to view your profile', returnTo: PROFILE_RETURN_TO })}
+        />
       </View>
     );
   }

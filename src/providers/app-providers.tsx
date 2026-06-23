@@ -5,6 +5,7 @@ import { Toaster } from 'sonner-native';
 import { queryClient, setupQueryPersistence } from '@/src/lib/query-client';
 import { AuthPromptModal } from '@/src/features/auth/components/AuthPromptModal';
 import { useAuthInit, useAuth } from '@/src/features/auth/hooks/use-auth';
+import { useMergeGuestFavoritesOnSignIn } from '@/src/features/favorites/hooks/use-merge-guest-favorites';
 
 function isPublicRoute(segments: string[]): boolean {
   if (segments.length === 0) return true;
@@ -50,6 +51,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
   useAuthInit();
+  useMergeGuestFavoritesOnSignIn();
 
   useEffect(() => {
     setupQueryPersistence();

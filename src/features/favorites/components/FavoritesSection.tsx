@@ -9,13 +9,11 @@ import { Skeleton } from '@/src/design-system/components/Skeleton';
 import { FavoriteListingCard } from '@/src/features/favorites/components/FavoriteListingCard';
 import { useFavorites } from '@/src/features/favorites/hooks/use-favorites';
 import { useAuth } from '@/src/features/auth/hooks/use-auth';
-import { useRequireAuth } from '@/src/hooks/use-require-auth';
 import { useResponsive } from '@/src/hooks/use-responsive';
 
 export const FavoritesSection = memo(function FavoritesSection() {
   const router = useRouter();
   const { userId } = useAuth();
-  const requireAuth = useRequireAuth();
   const { scale } = useResponsive();
   const cardWidth = scale(156);
   const { data: favorites = [], isLoading, isError, refetch } = useFavorites();
@@ -37,21 +35,17 @@ export const FavoritesSection = memo(function FavoritesSection() {
     router.push('/browse/marketplace' as Href);
   }, [router]);
 
-  const handleSignIn = useCallback(() => {
-    requireAuth({ message: 'Sign in to view favorites', returnTo: '/(tabs)' });
-  }, [requireAuth]);
-
   return (
     <View style={{ marginBottom: 24 }}>
       <SectionHeader title="Favorites" actionLabel="See all" onActionPress={handleSeeAll} />
 
-      {!userId ? (
+      {!userId && previewItems.length === 0 ? (
         <EmptyState
           icon={Heart}
-          title="Sign in to save favorites"
-          description="Tap the heart on any listing to add it here."
-          actionLabel="Sign in"
-          onAction={handleSignIn}
+          title="No favorites yet"
+          description="Tap the heart on any listing to save it here."
+          actionLabel="Browse marketplace"
+          onAction={handleBrowseMarketplace}
         />
       ) : isLoading ? (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
@@ -76,7 +70,6 @@ export const FavoritesSection = memo(function FavoritesSection() {
               listing={listing}
               cardWidth={cardWidth}
               onPress={handleListingPress}
-              returnTo={'/(tabs)' as Href}
             />
           ))}
         </ScrollView>
