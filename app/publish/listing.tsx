@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
 import { typography } from '@/src/design-system/tokens';
 import { LISTING_CATEGORIES } from '@/src/features/listings/constants/categories';
+import { pruneAttributesForCategory } from '@/src/features/listings/constants/attribute-fields';
 import { ListingAttributesFields } from '@/src/features/listings/components/ListingAttributesFields';
 import { ListingPhotoPicker } from '@/src/features/listings/components/ListingPhotoPicker';
 import { useCreateListing } from '@/src/features/listings/hooks/use-create-listing';
@@ -38,7 +39,9 @@ export default function PublishListingScreen() {
   const [price, setPrice] = useState('');
   const [location, setLocation] = useState('Manila, Metro Manila');
   const [category, setCategory] = useState(
-    typeof categoryParam === 'string' ? categoryParam : 'marketplace'
+    typeof categoryParam === 'string' && categoryParam !== 'marketplace'
+      ? categoryParam
+      : LISTING_CATEGORIES[0].id
   );
   const [attributes, setAttributes] = useState<ListingAttributes>({});
 
@@ -47,10 +50,15 @@ export default function PublishListingScreen() {
   }, [requireAuth]);
 
   useEffect(() => {
-    if (typeof categoryParam === 'string') {
+    if (typeof categoryParam === 'string' && categoryParam !== 'marketplace') {
       setCategory(categoryParam);
     }
   }, [categoryParam]);
+
+  const handleCategoryChange = useCallback((nextCategory: string) => {
+    setCategory(nextCategory);
+    setAttributes((prev) => pruneAttributesForCategory(prev, nextCategory));
+  }, []);
 
   const selectedCategory = useMemo(
     () => LISTING_CATEGORIES.find((item) => item.id === category) ?? LISTING_CATEGORIES[0],
@@ -67,7 +75,7 @@ export default function PublishListingScreen() {
       description,
       price,
       location,
-      category: category === 'marketplace' ? undefined : category,
+      category,
       attributes,
       photos: photos.map((photo) => ({
         uri: photo.uri,
@@ -132,7 +140,7 @@ export default function PublishListingScreen() {
             return (
               <Pressable
                 key={item.id}
-                onPress={() => setCategory(item.id)}
+                onPress={() => handleCategoryChange(item.id)}
                 style={{
                   paddingHorizontal: 14,
                   paddingVertical: 10,
@@ -236,7 +244,7 @@ export default function PublishListingScreen() {
           }}
         />
 
-        <ListingAttributesFields value={attributes} onChange={setAttributes} />
+        <ListingAttributesFields categoryId={category} value={attributes} onChange={setAttributes} />
 
         <Pressable
           onPress={handlePublish}

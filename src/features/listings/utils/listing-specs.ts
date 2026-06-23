@@ -1,36 +1,14 @@
 import { getCategoryLabel } from '@/src/features/listings/constants/categories';
+import {
+  getAttributeFieldLabel,
+  getAttributeFieldsForCategory,
+} from '@/src/features/listings/constants/attribute-fields';
 import { DEMO_LISTING_ATTRIBUTES } from '@/src/features/listings/constants/demo-attributes';
 import type { ListingAttributes } from '@/src/features/listings/types';
 
 export interface ListingSpecItem {
   label: string;
   value: string;
-}
-
-const ATTRIBUTE_LABELS: Record<string, string> = {
-  condition: 'Condition',
-  brand: 'Brand',
-  model: 'Model',
-  storage: 'Storage',
-  color: 'Color',
-  size: 'Size',
-  platform: 'Platform',
-  network: 'Network',
-  dimensions: 'Dimensions',
-  material: 'Material',
-  year: 'Year',
-  mileage: 'Mileage',
-  bedrooms: 'Bedrooms',
-  bathrooms: 'Bathrooms',
-  area: 'Area',
-};
-
-function formatAttributeLabel(key: string): string {
-  if (ATTRIBUTE_LABELS[key]) return ATTRIBUTE_LABELS[key];
-  return key
-    .split('_')
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ');
 }
 
 function normalizeAttributes(value: ListingAttributes | null | undefined): ListingAttributes {
@@ -63,8 +41,20 @@ export function resolveListingSpecs({
     specs.push({ label: 'Category', value: getCategoryLabel(category) });
   }
 
+  const fieldDefs = getAttributeFieldsForCategory(category);
+  const usedKeys = new Set<string>();
+
+  for (const field of fieldDefs) {
+    const value = merged[field.key];
+    if (value) {
+      specs.push({ label: field.label, value });
+      usedKeys.add(field.key);
+    }
+  }
+
   for (const [key, value] of Object.entries(merged)) {
-    specs.push({ label: formatAttributeLabel(key), value });
+    if (usedKeys.has(key)) continue;
+    specs.push({ label: getAttributeFieldLabel(key, category), value });
   }
 
   return specs;

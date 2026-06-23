@@ -12,6 +12,10 @@ import {
   type MapCoordinates,
 } from '@/src/lib/maps';
 import { supabase } from '@/src/lib/supabase';
+import {
+  isBroadRentalQuery,
+  sanitizeVehicleSearchTerm,
+} from '../utils/vehicle-filters';
 import type { CreateVehicleInput } from '../schemas';
 import type {
   VehicleCardItem,
@@ -160,10 +164,12 @@ export async function fetchVehiclesPage(
     .order('id', { ascending: false })
     .limit(limit);
 
-  const normalizedQuery = params?.query?.trim();
-  if (normalizedQuery) {
+  const normalizedQuery = params?.query ? sanitizeVehicleSearchTerm(params.query) : '';
+  if (normalizedQuery && !isBroadRentalQuery(normalizedQuery)) {
     const pattern = `%${normalizedQuery}%`;
-    query = query.or(`title.ilike.${pattern},model.ilike.${pattern},location.ilike.${pattern}`);
+    query = query.or(
+      `title.ilike.${pattern},model.ilike.${pattern},brand.ilike.${pattern},location.ilike.${pattern},city.ilike.${pattern}`
+    );
   }
 
   if (params?.city) {

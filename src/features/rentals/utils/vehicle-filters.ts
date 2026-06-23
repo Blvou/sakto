@@ -34,14 +34,54 @@ export function filterLabelToId(label: string): VehicleFilterOption {
   return match ?? DEFAULT_VEHICLE_FILTER;
 }
 
+const RENTAL_BROAD_KEYWORDS = new Set([
+  'scooter',
+  'scooters',
+  'bike',
+  'bikes',
+  'motorcycle',
+  'motorcycles',
+  'moped',
+  'rent',
+  'rental',
+  'rentals',
+]);
+
+export function isBroadRentalQuery(query: string | null | undefined): boolean {
+  const normalized = query?.trim().toLowerCase();
+  if (!normalized) return false;
+  return normalized.split(/\s+/).some((word) => RENTAL_BROAD_KEYWORDS.has(word));
+}
+
+export function sanitizeVehicleSearchTerm(value: string): string {
+  return value.trim().replace(/[%_]/g, '');
+}
+
+export function filterVehiclesByQuery(
+  vehicles: VehicleCardItem[],
+  query?: string | null
+): VehicleCardItem[] {
+  const normalized = query ? sanitizeVehicleSearchTerm(query).toLowerCase() : '';
+  if (!normalized) return vehicles;
+  if (isBroadRentalQuery(normalized)) return vehicles;
+
+  return vehicles.filter(
+    (vehicle) =>
+      vehicle.title.toLowerCase().includes(normalized) ||
+      vehicle.model.toLowerCase().includes(normalized) ||
+      vehicle.location.toLowerCase().includes(normalized)
+  );
+}
+
 export function buildVehicleSearchParams(
   filter: VehicleFilterOption,
   query?: string,
   userCoords?: MapCoordinates | null
 ): VehicleSearchParams {
   const params: VehicleSearchParams = { query, filter };
+  const hasTextQuery = !!query?.trim();
 
-  if (filter === 'Nearby' && userCoords) {
+  if (filter === 'Nearby' && userCoords && !hasTextQuery) {
     params.near = {
       lat: userCoords.latitude,
       lng: userCoords.longitude,

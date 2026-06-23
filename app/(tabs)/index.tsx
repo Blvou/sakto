@@ -10,10 +10,8 @@ import { RecommendedListingsSection } from '@/src/features/home/components/Recom
 import { RentNearbySection } from '@/src/features/home/components/RentNearbySection';
 import { useUnreadNotificationCount } from '@/src/features/notifications/hooks/use-user-notifications';
 import { ListingSearchBar } from '@/src/features/listings/components/ListingSearchBar';
-import {
-  ListingSearchResults,
-  useListingSearchState,
-} from '@/src/features/listings/components/ListingSearchResults';
+import { useListingSearchState } from '@/src/features/listings/components/ListingSearchResults';
+import { HomeSearchResults } from '@/src/features/home/components/HomeSearchResults';
 import { useCategoryListings } from '@/src/features/listings/hooks/use-category-listings';
 import { useVehicles } from '@/src/features/rentals/hooks/use-vehicles';
 import { useUserLocation } from '@/src/features/rentals/hooks/use-user-location';
@@ -63,7 +61,7 @@ export default function HomeScreen() {
       <ListingSearchBar
         value={query}
         onChangeText={setQuery}
-        placeholder="Search listings..."
+        placeholder="Search scooters, listings..."
       />
 
       {isSearching ? (
@@ -72,7 +70,7 @@ export default function HomeScreen() {
             <GridSkeleton cardWidth={cardWidth} rows={3} />
           </View>
         ) : (
-          <ListingSearchResults
+          <HomeSearchResults
             searchQuery={debouncedQuery}
             returnTo={'/(tabs)' as Href}
           />

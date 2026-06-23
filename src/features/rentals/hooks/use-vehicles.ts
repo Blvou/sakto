@@ -9,6 +9,7 @@ import { rentalQueryKeys } from '../types';
 import {
   DEFAULT_VEHICLE_FILTER,
   filterLabelToId,
+  filterVehiclesByQuery,
   sortVehiclesByFilter,
   type VehicleFilterOption,
 } from '../utils/vehicle-filters';
@@ -39,8 +40,9 @@ export function useInfiniteVehicles(params?: VehicleSearchParams, options?: UseV
     queryKey: [...rentalQueryKeys.vehicleList(params), useMock ? 'mock' : 'live', filter] as const,
     queryFn: async ({ pageParam }) => {
       if (useMock) {
+        const filtered = filterVehiclesByQuery(mockVehicleCards(userCoords), params?.query);
         return {
-          items: sortVehiclesByFilter(mockVehicleCards(userCoords), filter),
+          items: sortVehiclesByFilter(filtered, filter),
           nextCursor: undefined,
         };
       }

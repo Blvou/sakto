@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
 import { typography } from '@/src/design-system/tokens';
 import { LISTING_CATEGORIES } from '@/src/features/listings/constants/categories';
+import { pruneAttributesForCategory } from '@/src/features/listings/constants/attribute-fields';
 import { ListingAttributesFields } from '@/src/features/listings/components/ListingAttributesFields';
 import { ListingPhotoPicker } from '@/src/features/listings/components/ListingPhotoPicker';
 import { useListing } from '@/src/features/listings/hooks/use-listing';
@@ -57,6 +58,11 @@ export default function EditListingScreen() {
   const handleBack = useCallback(() => {
     router.back();
   }, [router]);
+
+  const handleCategoryChange = useCallback((nextCategory: string) => {
+    setCategory(nextCategory);
+    setAttributes((prev) => pruneAttributesForCategory(prev, nextCategory));
+  }, []);
 
   const handleSave = useCallback(() => {
     if (!id) return;
@@ -150,7 +156,7 @@ export default function EditListingScreen() {
             return (
               <Pressable
                 key={item.id}
-                onPress={() => setCategory(item.id)}
+                onPress={() => handleCategoryChange(item.id)}
                 style={{
                   paddingHorizontal: 14,
                   paddingVertical: 10,
@@ -246,7 +252,7 @@ export default function EditListingScreen() {
           }}
         />
 
-        <ListingAttributesFields value={attributes} onChange={setAttributes} />
+        <ListingAttributesFields categoryId={category} value={attributes} onChange={setAttributes} />
 
         <Pressable
           onPress={handleSave}
