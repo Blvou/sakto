@@ -21,6 +21,7 @@ import { ListingPhotoPicker } from '@/src/features/listings/components/ListingPh
 import { useCreateListing } from '@/src/features/listings/hooks/use-create-listing';
 import { useListingPhotoDrafts } from '@/src/features/listings/hooks/use-listing-photo-drafts';
 import { createListingMutationSchema } from '@/src/features/listings/schemas';
+import { ImageCropModal } from '@/src/features/media/components/ImageCropModal';
 import { useTheme } from '@/src/hooks/use-theme';
 import { useRequireAuth } from '@/src/hooks/use-require-auth';
 import type { ListingAttributes } from '@/src/features/listings/types';
@@ -32,7 +33,8 @@ export default function PublishListingScreen() {
   const requireAuth = useRequireAuth();
   const { category: categoryParam } = useLocalSearchParams<{ category?: string }>();
   const createListing = useCreateListing();
-  const { photos, pickPhotos, removePhoto, movePhotoToCover, maxPhotos } = useListingPhotoDrafts();
+  const { photos, pickPhotos, recropPhoto, removePhoto, movePhotoToCover, maxPhotos, pendingCrop, confirmCrop, cancelCrop } =
+    useListingPhotoDrafts();
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -131,6 +133,7 @@ export default function PublishListingScreen() {
           onPickPhotos={pickPhotos}
           onRemovePhoto={removePhoto}
           onMovePhotoToCover={movePhotoToCover}
+          onRecropPhoto={recropPhoto}
         />
 
         <Text style={{ ...typography.caption, color: colors.textSecondary, marginBottom: 8 }}>Category</Text>
@@ -273,6 +276,15 @@ export default function PublishListingScreen() {
           )}
         </Pressable>
       </ScrollView>
+      <ImageCropModal
+        visible={pendingCrop !== null}
+        imageUri={pendingCrop?.uri ?? ''}
+        imageWidth={pendingCrop?.width}
+        imageHeight={pendingCrop?.height}
+        aspectRatio={{ width: 1, height: 1 }}
+        onConfirm={confirmCrop}
+        onCancel={cancelCrop}
+      />
     </KeyboardAvoidingView>
   );
 }

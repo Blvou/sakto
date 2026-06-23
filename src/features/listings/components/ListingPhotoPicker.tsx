@@ -1,6 +1,6 @@
 import { Pressable, Text, View } from 'react-native';
 import { Image } from 'expo-image';
-import { Camera, X } from 'lucide-react-native';
+import { Camera, Crop, X } from 'lucide-react-native';
 import { typography } from '@/src/design-system/tokens';
 import { useTheme } from '@/src/hooks/use-theme';
 import type { ListingPhotoDraft } from '../types';
@@ -11,6 +11,7 @@ interface ListingPhotoPickerProps {
   onPickPhotos: () => void;
   onRemovePhoto: (key: string) => void;
   onMovePhotoToCover: (index: number) => void;
+  onRecropPhoto: (key: string) => void;
 }
 
 export function ListingPhotoPicker({
@@ -19,6 +20,7 @@ export function ListingPhotoPicker({
   onPickPhotos,
   onRemovePhoto,
   onMovePhotoToCover,
+  onRecropPhoto,
 }: ListingPhotoPickerProps) {
   const { colors } = useTheme();
 
@@ -64,7 +66,10 @@ export function ListingPhotoPicker({
               </View>
             ) : null}
             <Pressable
-              onPress={() => onRemovePhoto(photo.key)}
+              onPress={(event) => {
+                event.stopPropagation();
+                onRemovePhoto(photo.key);
+              }}
               style={{
                 position: 'absolute',
                 top: 6,
@@ -80,6 +85,27 @@ export function ListingPhotoPicker({
               accessibilityLabel="Remove photo"
             >
               <X color="#FFF" size={14} />
+            </Pressable>
+            <Pressable
+              onPress={(event) => {
+                event.stopPropagation();
+                onRecropPhoto(photo.key);
+              }}
+              style={{
+                position: 'absolute',
+                bottom: 6,
+                right: 6,
+                width: 28,
+                height: 28,
+                borderRadius: 14,
+                backgroundColor: 'rgba(0,0,0,0.55)',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="Crop photo"
+            >
+              <Crop color="#FFF" size={14} strokeWidth={1.75} />
             </Pressable>
           </Pressable>
         ))}
@@ -123,7 +149,7 @@ export function ListingPhotoPicker({
         </Text>
       </Pressable>
       <Text style={{ ...typography.caption, color: colors.textSecondary }}>
-        Up to {maxPhotos} photos. First photo is the cover. Tap a photo to set it as cover.
+        Up to {maxPhotos} photos. First photo is the cover. Tap a photo to set cover, crop icon to edit.
       </Text>
     </View>
   );

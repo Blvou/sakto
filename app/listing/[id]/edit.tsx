@@ -14,6 +14,7 @@ import { useDeleteListing } from '@/src/features/listings/hooks/use-delete-listi
 import { useListingPhotoDrafts } from '@/src/features/listings/hooks/use-listing-photo-drafts';
 import { useUpdateListing } from '@/src/features/listings/hooks/use-update-listing';
 import { updateListingMutationSchema } from '@/src/features/listings/schemas';
+import { ImageCropModal } from '@/src/features/media/components/ImageCropModal';
 import { useTheme } from '@/src/hooks/use-theme';
 import { useRequireAuth } from '@/src/hooks/use-require-auth';
 import { confirmDestructive } from '@/src/lib/confirm';
@@ -28,7 +29,7 @@ export default function EditListingScreen() {
   const { data: listing, isLoading } = useListing(id);
   const updateListing = useUpdateListing();
   const deleteListing = useDeleteListing();
-  const { photos, setFromExistingMedia, pickPhotos, removePhoto, movePhotoToCover, maxPhotos } =
+  const { photos, setFromExistingMedia, pickPhotos, recropPhoto, removePhoto, movePhotoToCover, maxPhotos, pendingCrop, confirmCrop, cancelCrop } =
     useListingPhotoDrafts();
   const [previousPhotoUrls, setPreviousPhotoUrls] = useState<string[]>([]);
 
@@ -147,6 +148,7 @@ export default function EditListingScreen() {
           onPickPhotos={pickPhotos}
           onRemovePhoto={removePhoto}
           onMovePhotoToCover={movePhotoToCover}
+          onRecropPhoto={recropPhoto}
         />
 
         <Text style={{ ...typography.caption, color: colors.textSecondary, marginBottom: 8 }}>Category</Text>
@@ -305,6 +307,15 @@ export default function EditListingScreen() {
           )}
         </Pressable>
       </ScrollView>
+      <ImageCropModal
+        visible={pendingCrop !== null}
+        imageUri={pendingCrop?.uri ?? ''}
+        imageWidth={pendingCrop?.width}
+        imageHeight={pendingCrop?.height}
+        aspectRatio={{ width: 1, height: 1 }}
+        onConfirm={confirmCrop}
+        onCancel={cancelCrop}
+      />
     </KeyboardAvoidingView>
   );
 }
