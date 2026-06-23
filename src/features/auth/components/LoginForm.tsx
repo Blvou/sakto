@@ -315,7 +315,15 @@ function SocialAuthButtons({
   );
 }
 
-export function LoginForm({ disabled = false }: { disabled?: boolean }) {
+export function LoginForm({
+  disabled = false,
+  onSuccess,
+  compact = false,
+}: {
+  disabled?: boolean;
+  onSuccess?: () => void;
+  compact?: boolean;
+}) {
   const { colors } = useTheme();
   const [mode, setMode] = useState<'login' | 'signup'>('login');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -330,6 +338,7 @@ export function LoginForm({ disabled = false }: { disabled?: boolean }) {
     try {
       await signIn(data);
       toast.success('Welcome back!');
+      onSuccess?.();
     } catch (err) {
       toast.error(getErrorMessage(err));
     } finally {
@@ -342,6 +351,7 @@ export function LoginForm({ disabled = false }: { disabled?: boolean }) {
     try {
       await signUp(data);
       toast.success('Account created. You can start chatting.');
+      onSuccess?.();
     } catch (err) {
       toast.error(getErrorMessage(err));
     } finally {
@@ -355,6 +365,7 @@ export function LoginForm({ disabled = false }: { disabled?: boolean }) {
       const result = await signInWithSocialProvider(provider);
       if (!result.cancelled) {
         toast.success('Welcome back!');
+        onSuccess?.();
       }
     } catch (err) {
       toast.error(getErrorMessage(err, 'Could not complete social sign in'));
@@ -365,14 +376,18 @@ export function LoginForm({ disabled = false }: { disabled?: boolean }) {
 
   return (
     <View style={{ gap: 16, opacity: disabled ? 0.5 : 1 }} pointerEvents={disabled ? 'none' : 'auto'}>
-      <Text style={{ ...typography.h1, color: colors.textPrimary }}>
-        {isLogin ? 'Sign in' : 'Create account'}
-      </Text>
-      <Text style={{ ...typography.body, color: colors.textSecondary }}>
-        {isLogin
-          ? 'Sign in to message sellers and buyers on Sakto.'
-          : 'Join Sakto to buy, sell, and chat safely.'}
-      </Text>
+      {!compact ? (
+        <>
+          <Text style={{ ...typography.h1, color: colors.textPrimary }}>
+            {isLogin ? 'Sign in' : 'Create account'}
+          </Text>
+          <Text style={{ ...typography.body, color: colors.textSecondary }}>
+            {isLogin
+              ? 'Sign in to message sellers and buyers on Sakto.'
+              : 'Join Sakto to buy, sell, and chat safely.'}
+          </Text>
+        </>
+      ) : null}
 
       {isLogin ? (
         <LoginFields onSubmit={handleLogin} isSubmitting={isBusy} />

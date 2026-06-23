@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
-import { useRouter, type Href } from 'expo-router';
+import type { Href } from 'expo-router';
 import { useAuth } from '@/src/features/auth/hooks/use-auth';
-import { toast } from 'sonner-native';
+import { useAuthPromptStore } from '@/src/stores/auth-prompt-store';
 
 interface RequireAuthOptions {
   message?: string;
@@ -10,19 +10,18 @@ interface RequireAuthOptions {
 
 export function useRequireAuth() {
   const { userId } = useAuth();
-  const router = useRouter();
+  const openAuthPrompt = useAuthPromptStore((s) => s.open);
 
   return useCallback(
     (options?: RequireAuthOptions) => {
       if (userId) return true;
 
-      toast.error(options?.message ?? 'Sign in to continue');
-      router.push({
-        pathname: '/(auth)/login',
-        params: options?.returnTo ? { returnTo: String(options.returnTo) } : undefined,
+      openAuthPrompt({
+        message: options?.message ?? 'Sign in to continue',
+        returnTo: options?.returnTo,
       });
       return false;
     },
-    [router, userId]
+    [openAuthPrompt, userId]
   );
 }
