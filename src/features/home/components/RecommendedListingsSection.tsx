@@ -1,19 +1,18 @@
 import { memo, useCallback, useMemo } from 'react';
-import { ScrollView, View } from 'react-native';
+import { View } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
 import { Store } from 'lucide-react-native';
 import { EmptyState } from '@/src/design-system/components/EmptyState';
 import { ErrorState } from '@/src/design-system/components/ErrorState';
+import { GridSkeleton } from '@/src/design-system/components/ListSkeleton';
 import { SectionHeader } from '@/src/design-system/components/SectionHeader';
-import { Skeleton } from '@/src/design-system/components/Skeleton';
 import { FavoriteListingCard } from '@/src/features/favorites/components/FavoriteListingCard';
 import { useCategoryListings } from '@/src/features/listings/hooks/use-category-listings';
 import { useResponsive } from '@/src/hooks/use-responsive';
 
 export const RecommendedListingsSection = memo(function RecommendedListingsSection() {
   const router = useRouter();
-  const { scale } = useResponsive();
-  const cardWidth = scale(156);
+  const { cardWidth } = useResponsive();
   const { listings, isLoading, isError, refetch } = useCategoryListings(null);
 
   const previewItems = useMemo(() => listings.slice(0, 8), [listings]);
@@ -42,11 +41,7 @@ export const RecommendedListingsSection = memo(function RecommendedListingsSecti
     return (
       <View style={{ marginBottom: 24 }}>
         <SectionHeader title="Recommended" />
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
-          <Skeleton width={cardWidth} height={cardWidth + 72} borderRadius={12} />
-          <Skeleton width={cardWidth} height={cardWidth + 72} borderRadius={12} />
-          <Skeleton width={cardWidth} height={cardWidth + 72} borderRadius={12} />
-        </ScrollView>
+        <GridSkeleton cardWidth={cardWidth} rows={2} />
       </View>
     );
   }
@@ -69,7 +64,7 @@ export const RecommendedListingsSection = memo(function RecommendedListingsSecti
   return (
     <View style={{ marginBottom: 24 }}>
       <SectionHeader title="Recommended" actionLabel="See all" onActionPress={handleSeeAll} />
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
         {previewItems.map((listing) => (
           <FavoriteListingCard
             key={listing.id}
@@ -78,7 +73,7 @@ export const RecommendedListingsSection = memo(function RecommendedListingsSecti
             onPress={handleListingPress}
           />
         ))}
-      </ScrollView>
+      </View>
     </View>
   );
 });
