@@ -21,7 +21,7 @@ export const HUB_CATEGORIES: HubCategory[] = [
   { id: 'transport', label: 'Transport', icon: Car, href: '/transport' as Href },
   { id: 'real-estate', label: 'Real Estate', icon: Building2, href: '/browse/real-estate' as Href },
   { id: 'services', label: 'Services', icon: HandHelping, href: '/browse/services' as Href },
-  { id: 'marketplace', label: 'Marketplace', icon: Store, href: '/browse/marketplace' as Href },
+  { id: 'marketplace', label: 'Marketplace', icon: Store, href: '/marketplace/search' as Href },
 ];
 
 export interface TransportSubcategory {

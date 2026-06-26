@@ -40,6 +40,7 @@ export interface ListingCardItem {
   timeAgo: string;
   image: ListingImage;
   category: string | null;
+  viewCount?: number;
   badge?: 'urgent' | 'top';
   liked?: boolean;
 }
@@ -56,9 +57,14 @@ export interface MyListingItem extends ListingCardItem {
 
 export const LISTINGS_PAGE_SIZE = 20;
 
+import type { ListingSortOption } from '@/src/features/listings/utils/listing-filters';
+
 export type ListingsPageCursor = {
-  created_at: string;
+  sort: ListingSortOption;
   id: string;
+  created_at?: string;
+  price?: number;
+  view_count?: number;
 };
 
 export interface ListingsPage {

@@ -1,7 +1,7 @@
 import { memo, useCallback } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { Image } from 'expo-image';
-import { Heart, MapPin } from 'lucide-react-native';
+import { Heart, Eye, MapPin } from 'lucide-react-native';
 import { useTheme } from '@/src/hooks/use-theme';
 import { useResponsive } from '@/src/hooks/use-responsive';
 import { useCardStyle } from '@/src/design-system/use-card-style';
@@ -92,11 +92,22 @@ export const ListingCard = memo(function ListingCard({
           >
             {listing.title}
           </Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 2 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 6 }}>
             <MapPin color={colors.textSecondary} size={11} />
-            <Text style={{ ...typography.caption, color: colors.textSecondary }}>
+            <Text
+              style={{ ...typography.caption, color: colors.textSecondary, flex: 1 }}
+              numberOfLines={1}
+            >
               {listing.location} • {listing.timeAgo}
             </Text>
+            {(listing.viewCount ?? 0) > 0 ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+                <Eye color={colors.textSecondary} size={11} />
+                <Text style={{ ...typography.caption, color: colors.textSecondary }}>
+                  {listing.viewCount}
+                </Text>
+              </View>
+            ) : null}
           </View>
         </View>
       </View>
@@ -104,20 +115,23 @@ export const ListingCard = memo(function ListingCard({
   );
 });
 
-const FILTERS = ['New', 'Nearby', 'Cheapest'] as const;
+const RECOMMENDED_FILTERS = ['New', 'Nearby', 'Cheapest'] as const;
 
-interface ListingFiltersProps {
+interface RecommendedListingFiltersProps {
   activeFilter?: string;
   onFilterChange?: (filter: string) => void;
 }
 
-export function ListingFilters({ activeFilter = 'New', onFilterChange }: ListingFiltersProps) {
+export function RecommendedListingFilters({
+  activeFilter = 'New',
+  onFilterChange,
+}: RecommendedListingFiltersProps) {
   const { colors } = useTheme();
   const { isSmallScreen } = useResponsive();
 
   const filterControls = (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-      {FILTERS.map((filter, i) => (
+      {RECOMMENDED_FILTERS.map((filter, i) => (
         <Pressable key={filter} onPress={() => onFilterChange?.(filter)} hitSlop={4}>
           <Text
             style={{
@@ -128,7 +142,7 @@ export function ListingFilters({ activeFilter = 'New', onFilterChange }: Listing
             }}
           >
             {filter}
-            {i < FILTERS.length - 1 ? '  |  ' : ''}
+            {i < RECOMMENDED_FILTERS.length - 1 ? '  |  ' : ''}
           </Text>
         </Pressable>
       ))}
@@ -172,7 +186,7 @@ interface ListingGridProps {
   onListingPress?: (id: string) => void;
 }
 
-/** @deprecated Use FlashList on Home screen with ListingCard + ListingFilters */
+/** @deprecated Use FlashList on Home screen with ListingCard + RecommendedListingFilters */
 export function ListingGrid({
   listings,
   cardWidth,
@@ -182,7 +196,7 @@ export function ListingGrid({
 }: ListingGridProps) {
   return (
     <View>
-      <ListingFilters activeFilter={activeFilter} onFilterChange={onFilterChange} />
+      <RecommendedListingFilters activeFilter={activeFilter} onFilterChange={onFilterChange} />
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
         {listings.map((listing) => (
           <ListingCard

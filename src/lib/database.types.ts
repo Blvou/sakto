@@ -37,6 +37,7 @@ export interface Database {
           category: string | null;
           status: 'active' | 'sold' | 'archived';
           attributes: Record<string, string>;
+          view_count: number;
           created_at: string;
         };
         Insert: {
@@ -50,6 +51,7 @@ export interface Database {
           category?: string | null;
           status?: 'active' | 'sold' | 'archived';
           attributes?: Record<string, string>;
+          view_count?: number;
           created_at?: string;
         };
         Update: {
@@ -61,6 +63,26 @@ export interface Database {
           category?: string | null;
           status?: 'active' | 'sold' | 'archived';
           attributes?: Record<string, string>;
+          view_count?: number;
+        };
+        Relationships: [];
+      };
+      listing_view_events: {
+        Row: {
+          id: string;
+          listing_id: string;
+          viewer_key: string;
+          viewed_at: string;
+        };
+        Insert: {
+          id?: string;
+          listing_id: string;
+          viewer_key: string;
+          viewed_at?: string;
+        };
+        Update: {
+          viewer_key?: string;
+          viewed_at?: string;
         };
         Relationships: [];
       };
@@ -490,6 +512,13 @@ export interface Database {
             preferred_lang: PreferredLang;
           };
         };
+      };
+      increment_listing_view: {
+        Args: {
+          p_listing_id: string;
+          p_viewer_key: string;
+        };
+        Returns: number;
       };
     };
     Enums: Record<string, never>;

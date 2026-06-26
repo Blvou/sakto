@@ -1,12 +1,10 @@
 import { z } from 'zod';
+import { getCategoryAttributesValidationError } from './constants/attribute-fields';
 import { sanitizeListingAttributes } from './utils/sanitize-attributes';
 import { validateListingCategoryAttributes } from './utils/category-attributes';
 import { LISTING_REPORT_REASONS } from './types';
 
-export const listingAttributesSchema = z
-  .record(z.string(), z.string())
-  .optional()
-  .transform((value) => sanitizeListingAttributes(value));
+const listingAttributesSchema = z.record(z.string(), z.string()).optional();
 
 const listingFormFieldsSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters').max(120),
@@ -22,7 +20,8 @@ function refineCategoryAttributes(
   data: z.infer<typeof listingFormFieldsSchema>,
   ctx: z.RefinementCtx
 ): void {
-  const error = validateListingCategoryAttributes(data.category, data.attributes);
+  const sanitized = sanitizeListingAttributes(data.attributes, data.category);
+  const error = getCategoryAttributesValidationError(data.category, sanitized);
   if (error) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: error, path: ['attributes'] });
   }
@@ -77,3 +76,6 @@ export const reportListingSchema = z.object({
 });
 
 export type ReportListingInput = z.infer<typeof reportListingSchema>;
+
+/** Sanitize attributes after Zod parse — call before Supabase writes. */
+export { sanitizeListingAttributes, validateListingCategoryAttributes };

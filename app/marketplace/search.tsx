@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { RefreshControl, View } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
@@ -8,38 +8,47 @@ import { ErrorState } from '@/src/design-system/components/ErrorState';
 import { GridSkeleton } from '@/src/design-system/components/ListSkeleton';
 import { ScreenHeader } from '@/src/design-system/components/ScreenHeader';
 import { FavoriteListingCard } from '@/src/features/favorites/components/FavoriteListingCard';
-import {
-  getBrowseTitle,
-  isListingBrowseSlug,
-} from '@/src/features/home/data/hub-categories';
-import {
-  DEFAULT_LISTING_FILTER_STATE,
-  ListingFilters,
-  listingFilterStateToSearchParams,
-  type ListingFilterState,
-} from '@/src/features/listings/components/ListingFilters';
+import { getCategoryLabel, normalizeCategoryId } from '@/src/features/listings/constants/categories';
+import { ListingFilters, DEFAULT_LISTING_FILTER_STATE, listingFilterStateToSearchParams, type ListingFilterState } from '@/src/features/listings/components/ListingFilters';
 import { ListingSearchBar } from '@/src/features/listings/components/ListingSearchBar';
 import { useListingSearchState } from '@/src/features/listings/components/ListingSearchResults';
-import { useCategoryListings } from '@/src/features/listings/hooks/use-category-listings';
+import { useMarketplaceListings } from '@/src/features/listings/hooks/use-category-listings';
+import { DEFAULT_LISTING_SORT, LISTING_SORT_OPTIONS, type ListingSortOption } from '@/src/features/listings/utils/listing-filters';
 import { useResponsive } from '@/src/hooks/use-responsive';
 import { useTheme } from '@/src/hooks/use-theme';
 
-export default function BrowseCategoryScreen() {
-  const { category } = useLocalSearchParams<{ category: string }>();
+export default function MarketplaceSearchScreen() {
+  const { category: categoryParam, sort: sortParam } = useLocalSearchParams<{
+    category?: string;
+    sort?: string;
+  }>();
   const { colors } = useTheme();
   const router = useRouter();
   const { cardWidth, horizontalPadding, listBottomPadding } = useResponsive();
   const { query, setQuery, debouncedQuery } = useListingSearchState();
+
   const [filterState, setFilterState] = useState<ListingFilterState>(DEFAULT_LISTING_FILTER_STATE);
 
-  const slug = category ?? 'marketplace';
-  const isValidSlug = isListingBrowseSlug(slug);
-  const dbCategory = slug === 'marketplace' ? null : slug;
-  const title = getBrowseTitle(slug);
+  useEffect(() => {
+    if (typeof categoryParam === 'string') {
+      setFilterState((prev) => ({ ...prev, attributeFilters: {} }));
+    }
+  }, [categoryParam]);
+
+  useEffect(() => {
+    if (typeof sortParam === 'string' && LISTING_SORT_OPTIONS.some((option) => option.id === sortParam)) {
+      setFilterState((prev) => ({ ...prev, sort: sortParam as ListingSortOption }));
+    }
+  }, [sortParam]);
+
+  const categoryId = useMemo(() => {
+    if (typeof categoryParam !== 'string') return null;
+    return normalizeCategoryId(categoryParam);
+  }, [categoryParam]);
 
   const searchParamsPartial = useMemo(
-    () => listingFilterStateToSearchParams(dbCategory, filterState),
-    [dbCategory, filterState]
+    () => listingFilterStateToSearchParams(categoryId, filterState),
+    [categoryId, filterState]
   );
 
   const {
@@ -51,10 +60,15 @@ export default function BrowseCategoryScreen() {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useCategoryListings(isValidSlug ? dbCategory : null, {
+  } = useMarketplaceListings({
     searchQuery: debouncedQuery,
-    searchParams: searchParamsPartial,
+    searchParams: {
+      ...searchParamsPartial,
+      category: categoryId,
+    },
   });
+
+  const screenTitle = categoryId ? getCategoryLabel(categoryId) : 'Marketplace';
 
   const handleBack = useCallback(() => {
     router.back();
@@ -81,7 +95,7 @@ export default function BrowseCategoryScreen() {
         <EmptyState
           icon={Search}
           title="No results"
-          description={`Nothing matched "${debouncedQuery}" in ${title}. Try different keywords.`}
+          description={`Nothing matched "${debouncedQuery}". Try different keywords or filters.`}
         />
       );
     }
@@ -90,39 +104,26 @@ export default function BrowseCategoryScreen() {
       <EmptyState
         icon={Store}
         title="No listings yet"
-        description={`There are no active listings in ${title} right now.`}
-        actionLabel="Browse marketplace"
-        onAction={() => router.push('/marketplace/search' as Href)}
+        description="Try adjusting filters or browse another category."
+        actionLabel="Clear filters"
+        onAction={() =>
+          setFilterState({ ...DEFAULT_LISTING_FILTER_STATE, sort: DEFAULT_LISTING_SORT })
+        }
       />
     );
-  }, [debouncedQuery, isError, isLoading, router, title]);
-
-  if (!isValidSlug) {
-    return (
-      <View style={{ flex: 1, backgroundColor: colors.background }}>
-        <ScreenHeader title="Browse" onBack={handleBack} />
-        <EmptyState
-          icon={Store}
-          title="Category not found"
-          description="This category does not exist."
-          actionLabel="Go home"
-          onAction={() => router.replace('/(tabs)')}
-        />
-      </View>
-    );
-  }
+  }, [debouncedQuery, isError, isLoading]);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <ScreenHeader title={title} onBack={handleBack} />
+      <ScreenHeader title={screenTitle} onBack={handleBack} />
 
       <ListingSearchBar
         value={query}
         onChangeText={setQuery}
-        placeholder={`Search in ${title}...`}
+        placeholder={`Search ${screenTitle.toLowerCase()}...`}
       />
 
-      <ListingFilters categoryId={dbCategory} value={filterState} onChange={setFilterState} />
+      <ListingFilters categoryId={categoryId} value={filterState} onChange={setFilterState} />
 
       {isLoading ? (
         <View style={{ flex: 1, paddingHorizontal: horizontalPadding, paddingTop: 16 }}>
@@ -144,7 +145,7 @@ export default function BrowseCategoryScreen() {
           )}
           contentContainerStyle={{
             paddingHorizontal: horizontalPadding,
-            paddingTop: 16,
+            paddingTop: 8,
             paddingBottom: listBottomPadding,
           }}
           refreshControl={

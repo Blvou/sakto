@@ -1,119 +1,195 @@
+import {
+  AVAILABILITY_OPTIONS,
+  BATHROOM_OPTIONS,
+  BEDROOM_OPTIONS,
+  CLOTHING_SIZE_OPTIONS,
+  CONDITION_OPTIONS,
+  EDITION_OPTIONS,
+  EMPLOYMENT_TYPE_OPTIONS,
+  FUEL_TYPE_OPTIONS,
+  FURNISHING_OPTIONS,
+  GENDER_OPTIONS,
+  HOME_MATERIAL_OPTIONS,
+  LISTING_TYPE_OPTIONS,
+  MATERIAL_OPTIONS,
+  NETWORK_OPTIONS,
+  PART_TYPE_OPTIONS,
+  PLATFORM_OPTIONS,
+  PROPERTY_TYPE_OPTIONS,
+  REMOTE_OPTIONS,
+  SERVICE_TYPE_OPTIONS,
+  STORAGE_OPTIONS,
+  TRANSMISSION_OPTIONS,
+} from './attribute-options';
+
+export type AttributeFieldType = 'text' | 'number' | 'select';
+
 export interface ListingAttributeFieldDef {
   key: string;
   label: string;
   placeholder: string;
+  type: AttributeFieldType;
+  options?: readonly string[];
+  filterable?: boolean;
   required?: boolean;
   keyboardType?: 'default' | 'numeric';
 }
 
-const CONDITION_FIELD: ListingAttributeFieldDef = {
-  key: 'condition',
-  label: 'Condition',
-  placeholder: 'e.g. New, Used — good, For parts',
+function selectField(
+  key: string,
+  label: string,
+  options: readonly string[],
+  opts: { required?: boolean; filterable?: boolean; placeholder?: string } = {}
+): ListingAttributeFieldDef {
+  return {
+    key,
+    label,
+    type: 'select',
+    options: [...options],
+    placeholder: opts.placeholder ?? `Select ${label.toLowerCase()}`,
+    required: opts.required,
+    filterable: opts.filterable ?? true,
+  };
+}
+
+function textField(
+  key: string,
+  label: string,
+  placeholder: string,
+  opts: { required?: boolean; keyboardType?: 'default' | 'numeric' } = {}
+): ListingAttributeFieldDef {
+  return {
+    key,
+    label,
+    type: 'text',
+    placeholder,
+    required: opts.required,
+    keyboardType: opts.keyboardType,
+    filterable: false,
+  };
+}
+
+function numberField(
+  key: string,
+  label: string,
+  placeholder: string,
+  opts: { required?: boolean } = {}
+): ListingAttributeFieldDef {
+  return {
+    key,
+    label,
+    type: 'number',
+    placeholder,
+    required: opts.required,
+    keyboardType: 'numeric',
+    filterable: false,
+  };
+}
+
+const CONDITION_FIELD = selectField('condition', 'Condition', CONDITION_OPTIONS, {
   required: true,
-};
+  filterable: true,
+});
 
 const VEHICLE_FIELDS: ListingAttributeFieldDef[] = [
   CONDITION_FIELD,
-  { key: 'brand', label: 'Brand', placeholder: 'e.g. Toyota, Honda', required: true },
-  { key: 'model', label: 'Model', placeholder: 'e.g. Vios, Civic', required: true },
-  { key: 'year', label: 'Year', placeholder: 'e.g. 2019', keyboardType: 'numeric' },
-  { key: 'mileage', label: 'Mileage', placeholder: 'e.g. 45,000 km' },
-  { key: 'transmission', label: 'Transmission', placeholder: 'e.g. Automatic, Manual' },
-  { key: 'fuel_type', label: 'Fuel type', placeholder: 'e.g. Gasoline, Diesel, Hybrid' },
+  textField('brand', 'Brand', 'e.g. Toyota, Honda', { required: true }),
+  textField('model', 'Model', 'e.g. Vios, Civic', { required: true }),
+  numberField('year', 'Year', 'e.g. 2019'),
+  textField('mileage', 'Mileage', 'e.g. 45,000 km'),
+  selectField('transmission', 'Transmission', TRANSMISSION_OPTIONS, { filterable: true }),
+  selectField('fuel_type', 'Fuel type', FUEL_TYPE_OPTIONS, { filterable: true }),
 ];
 
-/** Per-category attribute fields shown on publish/edit and detail specs. */
+/** Per-category attribute fields shown on publish/edit, detail specs, and filters. */
 export const CATEGORY_ATTRIBUTE_FIELDS: Record<string, ListingAttributeFieldDef[]> = {
   electronics: [
     CONDITION_FIELD,
-    { key: 'brand', label: 'Brand', placeholder: 'e.g. Apple, Samsung', required: true },
-    { key: 'model', label: 'Model', placeholder: 'e.g. iPhone 13 Pro, Galaxy A54', required: true },
-    { key: 'storage', label: 'Storage', placeholder: 'e.g. 128 GB' },
-    { key: 'color', label: 'Color', placeholder: 'e.g. Space Gray' },
-    { key: 'network', label: 'Network', placeholder: 'e.g. 5G, LTE, Wi‑Fi only' },
+    textField('brand', 'Brand', 'e.g. Apple, Samsung', { required: true }),
+    textField('model', 'Model', 'e.g. iPhone 13 Pro, Galaxy A54', { required: true }),
+    selectField('storage', 'Storage', STORAGE_OPTIONS, { filterable: true }),
+    textField('color', 'Color', 'e.g. Space Gray'),
+    selectField('network', 'Network', NETWORK_OPTIONS, { filterable: true }),
   ],
   clothing: [
     CONDITION_FIELD,
-    { key: 'brand', label: 'Brand', placeholder: 'e.g. Nike, Uniqlo' },
-    { key: 'size', label: 'Size', placeholder: 'e.g. M, 42, 28', required: true },
-    { key: 'color', label: 'Color', placeholder: 'e.g. Black, Navy' },
-    { key: 'material', label: 'Material', placeholder: 'e.g. Cotton, Denim, Polyester' },
-    { key: 'gender', label: 'Gender', placeholder: 'e.g. Men, Women, Unisex' },
+    textField('brand', 'Brand', 'e.g. Nike, Uniqlo'),
+    selectField('size', 'Size', CLOTHING_SIZE_OPTIONS, { required: true, filterable: true }),
+    textField('color', 'Color', 'e.g. Black, Navy'),
+    selectField('material', 'Material', MATERIAL_OPTIONS, { filterable: true }),
+    selectField('gender', 'Gender', GENDER_OPTIONS, { filterable: true }),
   ],
   home: [
     CONDITION_FIELD,
-    { key: 'brand', label: 'Brand', placeholder: 'e.g. IKEA, Mandaue Foam' },
-    { key: 'material', label: 'Material', placeholder: 'e.g. Wood, Metal, Fabric' },
-    { key: 'dimensions', label: 'Dimensions', placeholder: 'e.g. 120 x 60 x 75 cm' },
-    { key: 'color', label: 'Color', placeholder: 'e.g. White, Walnut' },
+    textField('brand', 'Brand', 'e.g. IKEA, Mandaue Foam'),
+    selectField('material', 'Material', HOME_MATERIAL_OPTIONS, { filterable: true }),
+    textField('dimensions', 'Dimensions', 'e.g. 120 x 60 x 75 cm'),
+    textField('color', 'Color', 'e.g. White, Walnut'),
   ],
   games: [
     CONDITION_FIELD,
-    { key: 'platform', label: 'Platform', placeholder: 'e.g. PS5, Xbox, Nintendo Switch', required: true },
-    { key: 'brand', label: 'Publisher', placeholder: 'e.g. Sony, Nintendo, EA' },
-    { key: 'model', label: 'Title', placeholder: 'e.g. DualSense, Elden Ring' },
-    { key: 'edition', label: 'Edition', placeholder: 'e.g. Standard, Deluxe, Collector’s' },
+    selectField('platform', 'Platform', PLATFORM_OPTIONS, { required: true, filterable: true }),
+    textField('brand', 'Publisher', 'e.g. Sony, Nintendo, EA'),
+    textField('model', 'Title', 'e.g. DualSense, Elden Ring'),
+    selectField('edition', 'Edition', EDITION_OPTIONS, { filterable: true }),
   ],
   auto: VEHICLE_FIELDS,
   'auto-buy': VEHICLE_FIELDS,
   'moto-buy': [
     CONDITION_FIELD,
-    { key: 'brand', label: 'Brand', placeholder: 'e.g. Honda, Yamaha', required: true },
-    { key: 'model', label: 'Model', placeholder: 'e.g. Click 125i, NMAX', required: true },
-    { key: 'year', label: 'Year', placeholder: 'e.g. 2022', keyboardType: 'numeric' },
-    { key: 'mileage', label: 'Mileage', placeholder: 'e.g. 8,000 km' },
-    { key: 'engine_cc', label: 'Engine', placeholder: 'e.g. 155 cc' },
+    textField('brand', 'Brand', 'e.g. Honda, Yamaha', { required: true }),
+    textField('model', 'Model', 'e.g. Click 125i, NMAX', { required: true }),
+    numberField('year', 'Year', 'e.g. 2022'),
+    textField('mileage', 'Mileage', 'e.g. 8,000 km'),
+    textField('engine_cc', 'Engine', 'e.g. 155 cc'),
   ],
   parts: [
     CONDITION_FIELD,
-    { key: 'part_type', label: 'Part type', placeholder: 'e.g. Tires, Battery, Headlight', required: true },
-    { key: 'brand', label: 'Brand', placeholder: 'e.g. Bosch, Bridgestone' },
-    { key: 'compatible_with', label: 'Compatible with', placeholder: 'e.g. Toyota Vios 2018–2022' },
-    { key: 'part_number', label: 'Part number', placeholder: 'e.g. OEM or aftermarket code' },
+    selectField('part_type', 'Part type', PART_TYPE_OPTIONS, { required: true, filterable: true }),
+    textField('brand', 'Brand', 'e.g. Bosch, Bridgestone'),
+    textField('compatible_with', 'Compatible with', 'e.g. Toyota Vios 2018–2022'),
+    textField('part_number', 'Part number', 'e.g. OEM or aftermarket code'),
   ],
   'real-estate': [
-    {
-      key: 'property_type',
-      label: 'Property type',
-      placeholder: 'e.g. Condo, House, Lot, Commercial',
+    selectField('listing_type', 'Listing type', LISTING_TYPE_OPTIONS, {
       required: true,
-    },
-    { key: 'bedrooms', label: 'Bedrooms', placeholder: 'e.g. 2', keyboardType: 'numeric' },
-    { key: 'bathrooms', label: 'Bathrooms', placeholder: 'e.g. 1', keyboardType: 'numeric' },
-    { key: 'area', label: 'Floor area', placeholder: 'e.g. 45 sqm', required: true },
-    { key: 'furnishing', label: 'Furnishing', placeholder: 'e.g. Fully furnished, Semi, Unfurnished' },
-    { key: 'parking', label: 'Parking', placeholder: 'e.g. 1 slot, Street parking' },
+      filterable: true,
+    }),
+    selectField('property_type', 'Property type', PROPERTY_TYPE_OPTIONS, {
+      required: true,
+      filterable: true,
+    }),
+    selectField('bedrooms', 'Bedrooms', BEDROOM_OPTIONS, { filterable: true }),
+    selectField('bathrooms', 'Bathrooms', BATHROOM_OPTIONS, { filterable: true }),
+    textField('area', 'Floor area', 'e.g. 45 sqm', { required: true }),
+    selectField('furnishing', 'Furnishing', FURNISHING_OPTIONS, { filterable: true }),
+    textField('parking', 'Parking', 'e.g. 1 slot, Street parking'),
   ],
   services: [
-    {
-      key: 'service_type',
-      label: 'Service type',
-      placeholder: 'e.g. Plumbing, Cleaning, Tutoring',
+    selectField('service_type', 'Service type', SERVICE_TYPE_OPTIONS, {
       required: true,
-    },
-    { key: 'availability', label: 'Availability', placeholder: 'e.g. Weekdays, On call' },
-    { key: 'experience', label: 'Experience', placeholder: 'e.g. 5 years' },
-    { key: 'service_area', label: 'Service area', placeholder: 'e.g. Metro Manila, Cebu City' },
+      filterable: true,
+    }),
+    selectField('availability', 'Availability', AVAILABILITY_OPTIONS, { filterable: true }),
+    textField('experience', 'Experience', 'e.g. 5 years'),
+    textField('service_area', 'Service area', 'e.g. Metro Manila, Cebu City'),
   ],
   jobs: [
-    { key: 'job_title', label: 'Job title', placeholder: 'e.g. Sales Associate, Driver', required: true },
-    {
-      key: 'employment_type',
-      label: 'Employment type',
-      placeholder: 'e.g. Full-time, Part-time, Contract',
+    textField('job_title', 'Job title', 'e.g. Sales Associate, Driver', { required: true }),
+    selectField('employment_type', 'Employment type', EMPLOYMENT_TYPE_OPTIONS, {
       required: true,
-    },
-    { key: 'salary_range', label: 'Salary range', placeholder: 'e.g. ₱18,000–₱22,000/month' },
-    { key: 'experience_required', label: 'Experience required', placeholder: 'e.g. 1 year, Fresh grad OK' },
-    { key: 'remote', label: 'Work setup', placeholder: 'e.g. On-site, Hybrid, Remote' },
+      filterable: true,
+    }),
+    textField('salary_range', 'Salary range', 'e.g. ₱18,000–₱22,000/month'),
+    textField('experience_required', 'Experience required', 'e.g. 1 year, Fresh grad OK'),
+    selectField('remote', 'Work setup', REMOTE_OPTIONS, { filterable: true }),
   ],
 };
 
 export const DEFAULT_ATTRIBUTE_FIELDS: ListingAttributeFieldDef[] = [
   CONDITION_FIELD,
-  { key: 'brand', label: 'Brand', placeholder: 'e.g. Brand name' },
-  { key: 'model', label: 'Model', placeholder: 'e.g. Model or variant' },
+  textField('brand', 'Brand', 'e.g. Brand name'),
+  textField('model', 'Model', 'e.g. Model or variant'),
 ];
 
 const ALL_FIELD_DEFS = new Map<string, ListingAttributeFieldDef>();
@@ -129,11 +205,21 @@ for (const field of DEFAULT_ATTRIBUTE_FIELDS) {
   }
 }
 
-export function getAttributeFieldsForCategory(categoryId: string | null | undefined): ListingAttributeFieldDef[] {
+export function getAttributeFieldsForCategory(
+  categoryId: string | null | undefined
+): ListingAttributeFieldDef[] {
   if (!categoryId || categoryId === 'marketplace' || categoryId === 'more' || categoryId === 'scooters') {
     return DEFAULT_ATTRIBUTE_FIELDS;
   }
   return CATEGORY_ATTRIBUTE_FIELDS[categoryId] ?? DEFAULT_ATTRIBUTE_FIELDS;
+}
+
+export function getFilterableFieldsForCategory(
+  categoryId: string | null | undefined
+): ListingAttributeFieldDef[] {
+  return getAttributeFieldsForCategory(categoryId).filter(
+    (field) => field.filterable && field.type === 'select' && field.options?.length
+  );
 }
 
 export function getAttributeFieldLabel(key: string, categoryId?: string | null): string {
@@ -150,6 +236,11 @@ export function getAttributeFieldLabel(key: string, categoryId?: string | null):
     .join(' ');
 }
 
+export function isValidSelectValue(field: ListingAttributeFieldDef, value: string): boolean {
+  if (field.type !== 'select' || !field.options?.length) return true;
+  return field.options.includes(value);
+}
+
 export function pruneAttributesForCategory(
   attributes: Record<string, string>,
   categoryId: string | null | undefined
@@ -164,8 +255,12 @@ export function getCategoryAttributesValidationError(
 ): string | null {
   const values = attributes ?? {};
   for (const field of getAttributeFieldsForCategory(categoryId)) {
-    if (field.required && !values[field.key]?.trim()) {
+    const raw = values[field.key]?.trim();
+    if (field.required && !raw) {
       return `${field.label} is required`;
+    }
+    if (raw && field.type === 'select' && !isValidSelectValue(field, raw)) {
+      return `${field.label} must be one of the allowed options`;
     }
   }
   return null;

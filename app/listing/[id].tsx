@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
-import { ArrowLeft, Flag, Heart, MapPin, MessageCircle, Pencil, Trash2 } from 'lucide-react-native';
+import { ArrowLeft, Eye, Flag, Heart, MapPin, MessageCircle, Pencil, Trash2 } from 'lucide-react-native';
 import { Avatar } from '@/src/design-system/components/Avatar';
 import { ErrorState } from '@/src/design-system/components/ErrorState';
 import { typography } from '@/src/design-system/tokens';
@@ -16,6 +16,8 @@ import { ReportListingModal } from '@/src/features/listings/components/ReportLis
 import { useHasReportedListing, useReportListing } from '@/src/features/listings/hooks/use-report-listing';
 import { useDeleteListing } from '@/src/features/listings/hooks/use-delete-listing';
 import { useListing } from '@/src/features/listings/hooks/use-listing';
+import { useIncrementListingView } from '@/src/features/listings/hooks/use-increment-listing-view';
+import { DEMO_LISTING_VIEW_COUNTS } from '@/src/features/listings/api/listings';
 import { formatTimeAgo } from '@/src/features/listings/utils/format-time-ago';
 import { resolveListingImage, resolveListingImages } from '@/src/features/listings/utils/listing-images';
 import { resolveListingSpecs } from '@/src/features/listings/utils/listing-specs';
@@ -36,6 +38,7 @@ export default function ListingDetailScreen() {
   const { userId } = useAuth();
   const requireAuth = useRequireAuth();
   const { data: listing, isLoading, isError, refetch, isRefetching } = useListing(id);
+  useIncrementListingView(id, !!listing && listing.status === 'active');
   const isFavorite = useIsFavorite(id);
   const { mutate: toggleFavorite, isPending: isTogglingFavorite } = useToggleFavorite();
   const startConversation = useStartConversation();
@@ -74,6 +77,7 @@ export default function ListingDetailScreen() {
       location: listing.location ?? 'Philippines',
       timeAgo: formatTimeAgo(listing.created_at),
       image: resolveListingImage(listing.id, listing.image_url),
+      viewCount: listing.view_count ?? DEMO_LISTING_VIEW_COUNTS[listing.id] ?? 0,
       category: resolveListingCategoryId(listing.id, listing.category),
       liked: true,
     };
@@ -147,6 +151,8 @@ export default function ListingDetailScreen() {
     listing.description?.trim() ||
     'No description provided yet. Message the seller to ask for more details.';
 
+  const viewCount = listing.view_count ?? DEMO_LISTING_VIEW_COUNTS[listing.id] ?? 0;
+
   const headerOverlay = (
     <>
       <Pressable
@@ -211,6 +217,15 @@ export default function ListingDetailScreen() {
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 8 }}>
               <MapPin color={colors.textSecondary} size={14} />
               <Text style={{ ...typography.body, color: colors.textSecondary }}>{listing.location}</Text>
+            </View>
+          ) : null}
+
+          {viewCount > 0 ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 8 }}>
+              <Eye color={colors.textSecondary} size={14} />
+              <Text style={{ ...typography.body, color: colors.textSecondary }}>
+                {viewCount} {viewCount === 1 ? 'view' : 'views'}
+              </Text>
             </View>
           ) : null}
 

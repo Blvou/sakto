@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { isSupabaseConfigured } from '@/src/lib/supabase';
 import { resolveListingCategoryId } from '@/src/features/listings/constants/categories';
 import { DEMO_LISTING_ATTRIBUTES } from '@/src/features/listings/constants/demo-attributes';
-import { DEMO_LISTINGS } from '../api/listings';
+import { DEMO_LISTING_VIEW_COUNTS, DEMO_LISTINGS } from '../api/listings';
 import { fetchListingById } from '../api/listings';
 import { listingQueryKeys } from '../types';
 import { formatTimeAgo } from '../utils/format-time-ago';
@@ -27,6 +27,7 @@ export function useListing(id: string | undefined) {
             'Well-maintained item in excellent condition. No scratches or dents. Includes original box and accessories. Meet-up in a public place preferred.',
           category: resolveListingCategoryId(mock.id, null),
           attributes: DEMO_LISTING_ATTRIBUTES[mock.id] ?? {},
+          view_count: DEMO_LISTING_VIEW_COUNTS[mock.id] ?? 0,
           status: 'active' as const,
           created_at: new Date().toISOString(),
           media_urls: [],

@@ -1,39 +1,50 @@
 import { useMemo } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { shouldUseCatalogMock } from '@/src/lib/catalog';
-import { filterBrowseListings } from '@/src/features/search/utils/filter-listings';
-import { fetchListingsPage, mockToCardItems } from '../api/listings';
+import {
+  buildListingSearchParams,
+  type ListingSearchParams,
+} from '@/src/features/listings/utils/listing-filters';
+import { fetchListingsPage, fetchMockListingsPage } from '../api/listings';
 import { listingQueryKeys, type ListingsPage, type ListingsPageCursor } from '../types';
 import { flattenListings } from '../utils/listings-cache';
 
-function filterMockListings(category: string | null | undefined, searchQuery?: string) {
-  const items = mockToCardItems();
-  return filterBrowseListings(items, {
-    categoryId: category ?? null,
-    query: searchQuery,
-  });
+export interface UseCategoryListingsOptions {
+  searchQuery?: string;
+  searchParams?: Partial<ListingSearchParams>;
 }
 
-interface UseCategoryListingsOptions {
-  searchQuery?: string;
+function buildParams(
+  category: string | null | undefined,
+  options: UseCategoryListingsOptions
+): ListingSearchParams {
+  return buildListingSearchParams({
+    category: category ?? null,
+    query: options.searchQuery,
+    sort: options.searchParams?.sort,
+    priceMin: options.searchParams?.priceMin,
+    priceMax: options.searchParams?.priceMax,
+    attributeFilters: options.searchParams?.attributeFilters,
+  });
 }
 
 export function useCategoryListings(
   category: string | null | undefined,
   options: UseCategoryListingsOptions = {}
 ) {
-  const { searchQuery = '' } = options;
+  const { searchQuery = '', searchParams: searchParamsOverride } = options;
   const useMock = shouldUseCatalogMock();
   const categoryKey = category ?? 'all';
-  const normalizedQuery = searchQuery.trim();
-  const queryKeySuffix = normalizedQuery || 'all';
+  const params = useMemo(
+    () => buildParams(category, { searchQuery, searchParams: searchParamsOverride }),
+    [category, searchQuery, searchParamsOverride]
+  );
+
+  const queryKeySuffix = JSON.stringify(params);
 
   const mockPage: ListingsPage = useMemo(
-    () => ({
-      items: filterMockListings(category, normalizedQuery || undefined),
-      nextCursor: undefined,
-    }),
-    [category, normalizedQuery]
+    () => fetchMockListingsPage(params),
+    [params]
   );
 
   const query = useInfiniteQuery({
@@ -47,12 +58,7 @@ export function useCategoryListings(
     queryFn: async ({ pageParam }) => {
       if (useMock) return mockPage;
       try {
-        return await fetchListingsPage(
-          pageParam,
-          undefined,
-          category ?? null,
-          normalizedQuery || null
-        );
+        return await fetchListingsPage(pageParam, undefined, params);
       } catch {
         return mockPage;
       }
@@ -68,5 +74,11 @@ export function useCategoryListings(
   return {
     ...query,
     listings,
+    searchParams: params,
   };
+}
+
+/** Marketplace-wide discovery (no fixed category slug). */
+export function useMarketplaceListings(options: UseCategoryListingsOptions = {}) {
+  return useCategoryListings(null, options);
 }

@@ -1,5 +1,6 @@
 import { resolveListingCategoryId } from '@/src/features/listings/constants/categories';
 import { syncListingMedia } from '@/src/features/listings/api/listing-photos';
+import { sanitizeListingAttributes } from '@/src/features/listings/utils/sanitize-attributes';
 import { supabase } from '@/src/lib/supabase';
 import { getClientStorage } from '@/src/lib/storage';
 import type { CreateListingInput, UpdateListingInput } from '../schemas';
@@ -12,6 +13,13 @@ import type {
   MyListingItem,
 } from '../types';
 import { LISTINGS_PAGE_SIZE } from '../types';
+import {
+  applyListingDiscovery,
+  DEFAULT_LISTING_SORT,
+  type ListingSearchParams,
+  type ListingSortOption,
+  sanitizeListingSearchTerm,
+} from '../utils/listing-filters';
 import { formatTimeAgo } from '../utils/format-time-ago';
 import { resolveListingImage } from '../utils/listing-images';
 
@@ -56,6 +64,16 @@ export const DEMO_LISTINGS = [
   },
 ] as const;
 
+/** Demo view counts for offline catalog smoke tests. */
+export const DEMO_LISTING_VIEW_COUNTS: Record<string, number> = {
+  'a0000000-0000-4000-8000-000000000001': 128,
+  'a0000000-0000-4000-8000-000000000002': 45,
+  'a0000000-0000-4000-8000-000000000003': 67,
+  'a0000000-0000-4000-8000-000000000004': 89,
+  'a0000000-0000-4000-8000-000000000005': 156,
+  'a0000000-0000-4000-8000-000000000006': 23,
+};
+
 function toCardItem(row: ListingRow, badge?: ListingCardItem['badge']): ListingCardItem {
   return {
     id: row.id,
@@ -65,6 +83,7 @@ function toCardItem(row: ListingRow, badge?: ListingCardItem['badge']): ListingC
     timeAgo: formatTimeAgo(row.created_at),
     image: resolveListingImage(row.id, row.image_url),
     category: resolveListingCategoryId(row.id, row.category),
+    viewCount: row.view_count ?? DEMO_LISTING_VIEW_COUNTS[row.id] ?? 0,
     badge,
   };
 }
@@ -78,40 +97,116 @@ function mockToCardItems(): ListingCardItem[] {
     timeAgo: `${index + 1}h ago`,
     image: resolveListingImage(listing.id, null),
     category: resolveListingCategoryId(listing.id, null),
+    viewCount: DEMO_LISTING_VIEW_COUNTS[listing.id] ?? 0,
   }));
 }
 
-function sanitizeSearchTerm(value: string): string {
-  return value.trim().replace(/[%_]/g, '');
+type ListingsQueryBuilder = {
+  order: (
+    column: string,
+    options?: { ascending?: boolean }
+  ) => ListingsQueryBuilder;
+  or: (filters: string) => ListingsQueryBuilder;
+  eq: (column: string, value: string | number) => ListingsQueryBuilder;
+  gte: (column: string, value: number) => ListingsQueryBuilder;
+  lte: (column: string, value: number) => ListingsQueryBuilder;
+  limit: (count: number) => ListingsQueryBuilder;
+};
+
+function applySortToQuery(query: ListingsQueryBuilder, sort: ListingSortOption) {
+  switch (sort) {
+    case 'price_asc':
+      return query.order('price', { ascending: true }).order('id', { ascending: true });
+    case 'price_desc':
+      return query.order('price', { ascending: false }).order('id', { ascending: false });
+    case 'most_viewed':
+      return query
+        .order('view_count', { ascending: false })
+        .order('id', { ascending: false });
+    case 'newest':
+    default:
+      return query.order('created_at', { ascending: false }).order('id', { ascending: false });
+  }
+}
+
+function applyCursorToQuery(
+  query: ListingsQueryBuilder,
+  cursor: ListingsPageCursor,
+  sort: ListingSortOption
+) {
+  switch (sort) {
+    case 'price_asc':
+      return query.or(
+        `price.gt.${cursor.price},and(price.eq.${cursor.price},id.gt.${cursor.id})`
+      );
+    case 'price_desc':
+      return query.or(
+        `price.lt.${cursor.price},and(price.eq.${cursor.price},id.lt.${cursor.id})`
+      );
+    case 'most_viewed':
+      return query.or(
+        `view_count.lt.${cursor.view_count},and(view_count.eq.${cursor.view_count},id.lt.${cursor.id})`
+      );
+    case 'newest':
+    default:
+      return query.or(
+        `created_at.lt.${cursor.created_at},and(created_at.eq.${cursor.created_at},id.lt.${cursor.id})`
+      );
+  }
+}
+
+function buildCursorFromRow(row: ListingRow, sort: ListingSortOption): ListingsPageCursor {
+  return {
+    sort,
+    id: row.id,
+    created_at: row.created_at,
+    price: row.price,
+    view_count: row.view_count ?? 0,
+  };
 }
 
 export async function fetchListingsPage(
   cursor?: ListingsPageCursor,
   limit = LISTINGS_PAGE_SIZE,
-  category?: string | null,
-  searchQuery?: string | null
+  params: ListingSearchParams = {}
 ): Promise<ListingsPage> {
+  const sort = params.sort ?? DEFAULT_LISTING_SORT;
+  const category = params.category;
+
   let query = supabase
     .from('listings')
-    .select('id, seller_id, title, price, image_url, location, created_at, status, category')
+    .select(
+      'id, seller_id, title, price, image_url, location, created_at, status, category, view_count, attributes'
+    )
     .eq('status', 'active')
-    .order('created_at', { ascending: false })
-    .order('id', { ascending: false })
     .limit(limit);
+
+  query = applySortToQuery(query as unknown as ListingsQueryBuilder, sort) as typeof query;
 
   if (category) {
     query = query.eq('category', category);
   }
 
-  const term = searchQuery ? sanitizeSearchTerm(searchQuery) : '';
+  const term = params.query ? sanitizeListingSearchTerm(params.query) : '';
   if (term) {
     query = query.or(`title.ilike.%${term}%,location.ilike.%${term}%`);
   }
 
-  if (cursor) {
-    query = query.or(
-      `created_at.lt.${cursor.created_at},and(created_at.eq.${cursor.created_at},id.lt.${cursor.id})`
-    );
+  if (params.priceMin != null) {
+    query = query.gte('price', params.priceMin);
+  }
+  if (params.priceMax != null) {
+    query = query.lte('price', params.priceMax);
+  }
+
+  if (params.attributeFilters) {
+    for (const [key, value] of Object.entries(params.attributeFilters)) {
+      query = query.eq(`attributes->>${key}`, value);
+    }
+  }
+
+  if (cursor && cursor.sort === sort) {
+    query = applyCursorToQuery(query as unknown as ListingsQueryBuilder, cursor, sort) as typeof query;
   }
 
   const { data, error } = await query;
@@ -128,10 +223,13 @@ export async function fetchListingsPage(
   return {
     items,
     nextCursor:
-      rows.length === limit && last
-        ? { created_at: last.created_at, id: last.id }
-        : undefined,
+      rows.length === limit && last ? buildCursorFromRow(last, sort) : undefined,
   };
+}
+
+export function fetchMockListingsPage(params: ListingSearchParams = {}): ListingsPage {
+  const items = applyListingDiscovery(mockToCardItems(), params);
+  return { items, nextCursor: undefined };
 }
 
 /** @deprecated Use fetchListingsPage for paginated catalog loads. */
@@ -155,6 +253,7 @@ export async function fetchListingById(id: string): Promise<ListingDetail | null
       category,
       status,
       attributes,
+      view_count,
       created_at,
       seller:profiles!seller_id ( id, display_name, avatar_url ),
       listing_media ( id, url, sort_order )
@@ -194,6 +293,7 @@ export async function fetchListingById(id: string): Promise<ListingDetail | null
     category: row.category,
     status: row.status,
     attributes: row.attributes ?? {},
+    view_count: row.view_count ?? 0,
     created_at: row.created_at,
     seller: row.seller,
     media,
@@ -217,7 +317,7 @@ export async function createListing(
       price: input.price,
       location: input.location,
       category: input.category ?? null,
-      attributes: input.attributes ?? {},
+      attributes: sanitizeListingAttributes(input.attributes, input.category),
       image_url: coverUrl,
       status: 'active',
     })
@@ -266,7 +366,7 @@ export async function fetchListingStats(sellerId: string): Promise<{ total: numb
 export async function fetchListingsBySeller(sellerId: string): Promise<MyListingItem[]> {
   const { data, error } = await supabase
     .from('listings')
-    .select('id, seller_id, title, price, image_url, location, created_at, status, category')
+    .select('id, seller_id, title, price, image_url, location, created_at, status, category, view_count')
     .eq('seller_id', sellerId)
     .order('created_at', { ascending: false });
 
@@ -294,7 +394,7 @@ export async function updateListing(
       price: input.price,
       location: input.location,
       category: input.category ?? null,
-      attributes: input.attributes ?? {},
+      attributes: sanitizeListingAttributes(input.attributes, input.category),
       ...(input.status ? { status: input.status } : {}),
     })
     .eq('id', listingId)
