@@ -36,6 +36,19 @@ export function listingSortIdToLabel(sort: ListingSortOption): string {
   return LISTING_SORT_OPTIONS.find((option) => option.id === sort)?.label ?? 'Newest';
 }
 
+export function listingSortIdToShortLabel(sort: ListingSortOption): string {
+  switch (sort) {
+    case 'price_asc':
+      return 'Lowest price';
+    case 'price_desc':
+      return 'Highest price';
+    case 'most_viewed':
+      return 'Most viewed';
+    default:
+      return 'Newest';
+  }
+}
+
 export function buildListingSearchParams(options: {
   category?: string | null;
   query?: string;

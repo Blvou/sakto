@@ -1,16 +1,19 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { RefreshControl, View } from 'react-native';
-import { FlashList } from '@shopify/flash-list';
-import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
+import { View } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Search, Store } from 'lucide-react-native';
 import { EmptyState } from '@/src/design-system/components/EmptyState';
 import { ErrorState } from '@/src/design-system/components/ErrorState';
 import { GridSkeleton } from '@/src/design-system/components/ListSkeleton';
 import { ScreenHeader } from '@/src/design-system/components/ScreenHeader';
-import { FavoriteListingCard } from '@/src/features/favorites/components/FavoriteListingCard';
 import { getCategoryLabel, normalizeCategoryId } from '@/src/features/listings/constants/categories';
-import { ListingFilters, DEFAULT_LISTING_FILTER_STATE, listingFilterStateToSearchParams, type ListingFilterState } from '@/src/features/listings/components/ListingFilters';
-import { ListingSearchBar } from '@/src/features/listings/components/ListingSearchBar';
+import {
+  DEFAULT_LISTING_FILTER_STATE,
+  listingFilterStateToSearchParams,
+  type ListingFilterState,
+} from '@/src/features/listings/components/ListingFilters';
+import { MarketplaceBrowseToolbar } from '@/src/features/listings/components/MarketplaceBrowseToolbar';
+import { MarketplaceListingGrid } from '@/src/features/listings/components/MarketplaceListingGrid';
 import { useListingSearchState } from '@/src/features/listings/components/ListingSearchResults';
 import { useMarketplaceListings } from '@/src/features/listings/hooks/use-category-listings';
 import { DEFAULT_LISTING_SORT, LISTING_SORT_OPTIONS, type ListingSortOption } from '@/src/features/listings/utils/listing-filters';
@@ -24,7 +27,7 @@ export default function MarketplaceSearchScreen() {
   }>();
   const { colors } = useTheme();
   const router = useRouter();
-  const { cardWidth, horizontalPadding, listBottomPadding } = useResponsive();
+  const { cardWidth, horizontalPadding } = useResponsive();
   const { query, setQuery, debouncedQuery } = useListingSearchState();
 
   const [filterState, setFilterState] = useState<ListingFilterState>(DEFAULT_LISTING_FILTER_STATE);
@@ -117,13 +120,14 @@ export default function MarketplaceSearchScreen() {
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <ScreenHeader title={screenTitle} onBack={handleBack} />
 
-      <ListingSearchBar
-        value={query}
-        onChangeText={setQuery}
-        placeholder={`Search ${screenTitle.toLowerCase()}...`}
+      <MarketplaceBrowseToolbar
+        query={query}
+        onQueryChange={setQuery}
+        searchPlaceholder={`Search ${screenTitle.toLowerCase()}...`}
+        categoryId={categoryId}
+        filterState={filterState}
+        onFilterChange={setFilterState}
       />
-
-      <ListingFilters categoryId={categoryId} value={filterState} onChange={setFilterState} />
 
       {isLoading ? (
         <View style={{ flex: 1, paddingHorizontal: horizontalPadding, paddingTop: 16 }}>
@@ -132,28 +136,13 @@ export default function MarketplaceSearchScreen() {
       ) : isError ? (
         <ErrorState title="Could not load listings" onRetry={() => refetch()} />
       ) : (
-        <FlashList
-          data={listings}
-          numColumns={2}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <FavoriteListingCard
-              listing={item}
-              cardWidth={cardWidth}
-              onPress={handleListingPress}
-            />
-          )}
-          contentContainerStyle={{
-            paddingHorizontal: horizontalPadding,
-            paddingTop: 8,
-            paddingBottom: listBottomPadding,
-          }}
-          refreshControl={
-            <RefreshControl refreshing={isRefetching} onRefresh={() => refetch()} tintColor={colors.primary} />
-          }
+        <MarketplaceListingGrid
+          listings={listings}
+          isRefetching={isRefetching}
+          onRefresh={() => refetch()}
+          onListingPress={handleListingPress}
           onEndReached={handleEndReached}
-          onEndReachedThreshold={0.5}
-          ListEmptyComponent={listEmpty}
+          listEmptyComponent={listEmpty}
         />
       )}
     </View>

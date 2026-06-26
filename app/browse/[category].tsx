@@ -1,24 +1,22 @@
 import { useCallback, useMemo, useState } from 'react';
-import { RefreshControl, View } from 'react-native';
-import { FlashList } from '@shopify/flash-list';
+import { View } from 'react-native';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { Search, Store } from 'lucide-react-native';
 import { EmptyState } from '@/src/design-system/components/EmptyState';
 import { ErrorState } from '@/src/design-system/components/ErrorState';
 import { GridSkeleton } from '@/src/design-system/components/ListSkeleton';
 import { ScreenHeader } from '@/src/design-system/components/ScreenHeader';
-import { FavoriteListingCard } from '@/src/features/favorites/components/FavoriteListingCard';
 import {
   getBrowseTitle,
   isListingBrowseSlug,
 } from '@/src/features/home/data/hub-categories';
 import {
   DEFAULT_LISTING_FILTER_STATE,
-  ListingFilters,
   listingFilterStateToSearchParams,
   type ListingFilterState,
 } from '@/src/features/listings/components/ListingFilters';
-import { ListingSearchBar } from '@/src/features/listings/components/ListingSearchBar';
+import { MarketplaceBrowseToolbar } from '@/src/features/listings/components/MarketplaceBrowseToolbar';
+import { MarketplaceListingGrid } from '@/src/features/listings/components/MarketplaceListingGrid';
 import { useListingSearchState } from '@/src/features/listings/components/ListingSearchResults';
 import { useCategoryListings } from '@/src/features/listings/hooks/use-category-listings';
 import { useResponsive } from '@/src/hooks/use-responsive';
@@ -28,7 +26,7 @@ export default function BrowseCategoryScreen() {
   const { category } = useLocalSearchParams<{ category: string }>();
   const { colors } = useTheme();
   const router = useRouter();
-  const { cardWidth, horizontalPadding, listBottomPadding } = useResponsive();
+  const { cardWidth, horizontalPadding } = useResponsive();
   const { query, setQuery, debouncedQuery } = useListingSearchState();
   const [filterState, setFilterState] = useState<ListingFilterState>(DEFAULT_LISTING_FILTER_STATE);
 
@@ -116,13 +114,14 @@ export default function BrowseCategoryScreen() {
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <ScreenHeader title={title} onBack={handleBack} />
 
-      <ListingSearchBar
-        value={query}
-        onChangeText={setQuery}
-        placeholder={`Search in ${title}...`}
+      <MarketplaceBrowseToolbar
+        query={query}
+        onQueryChange={setQuery}
+        searchPlaceholder={`Search in ${title}...`}
+        categoryId={dbCategory}
+        filterState={filterState}
+        onFilterChange={setFilterState}
       />
-
-      <ListingFilters categoryId={dbCategory} value={filterState} onChange={setFilterState} />
 
       {isLoading ? (
         <View style={{ flex: 1, paddingHorizontal: horizontalPadding, paddingTop: 16 }}>
@@ -131,28 +130,13 @@ export default function BrowseCategoryScreen() {
       ) : isError ? (
         <ErrorState title="Could not load listings" onRetry={() => refetch()} />
       ) : (
-        <FlashList
-          data={listings}
-          numColumns={2}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <FavoriteListingCard
-              listing={item}
-              cardWidth={cardWidth}
-              onPress={handleListingPress}
-            />
-          )}
-          contentContainerStyle={{
-            paddingHorizontal: horizontalPadding,
-            paddingTop: 16,
-            paddingBottom: listBottomPadding,
-          }}
-          refreshControl={
-            <RefreshControl refreshing={isRefetching} onRefresh={() => refetch()} tintColor={colors.primary} />
-          }
+        <MarketplaceListingGrid
+          listings={listings}
+          isRefetching={isRefetching}
+          onRefresh={() => refetch()}
+          onListingPress={handleListingPress}
           onEndReached={handleEndReached}
-          onEndReachedThreshold={0.5}
-          ListEmptyComponent={listEmpty}
+          listEmptyComponent={listEmpty}
         />
       )}
     </View>

@@ -9,23 +9,28 @@ interface ListingSearchBarProps {
   value: string;
   onChangeText: (text: string) => void;
   placeholder?: string;
+  /** Tighter spacing when nested inside MarketplaceBrowseToolbar. */
+  variant?: 'default' | 'embedded';
 }
 
 export const ListingSearchBar = memo(function ListingSearchBar({
   value,
   onChangeText,
   placeholder = 'Search listings...',
+  variant = 'default',
 }: ListingSearchBarProps) {
   const { colors } = useTheme();
   const { horizontalPadding } = useResponsive();
   const searchCardStyle = useCardStyle({ borderRadius: 24 });
+  const isEmbedded = variant === 'embedded';
 
   return (
     <View
       style={{
         paddingHorizontal: horizontalPadding,
-        paddingBottom: 12,
-        backgroundColor: colors.background,
+        paddingTop: isEmbedded ? 12 : 0,
+        paddingBottom: isEmbedded ? 10 : 12,
+        backgroundColor: isEmbedded ? 'transparent' : colors.background,
       }}
     >
       <View

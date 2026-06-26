@@ -15,6 +15,7 @@ function isPublicRoute(segments: string[]): boolean {
   if (root === '(auth)') return true;
   if (root === '(tabs)') return true;
   if (root === 'browse') return true;
+  if (root === 'marketplace') return true;
   if (root === 'transport') return true;
   if (root === 'search') return true;
   if (root === 'scooter') return true;
