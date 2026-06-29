@@ -14,7 +14,12 @@ import { ArrowLeft } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
 import { typography } from '@/src/design-system/tokens';
-import { LISTING_CATEGORIES } from '@/src/features/listings/constants/categories';
+import { CategoryPicker } from '@/src/features/listings/components/CategoryPicker';
+import {
+  getCategoryLabel,
+  getLeafCategories,
+  normalizeCategoryId,
+} from '@/src/features/listings/constants/category-tree';
 import { pruneAttributesForCategory } from '@/src/features/listings/constants/attribute-fields';
 import { ListingAttributesFields } from '@/src/features/listings/components/ListingAttributesFields';
 import { ListingPhotoPicker } from '@/src/features/listings/components/ListingPhotoPicker';
@@ -40,11 +45,13 @@ export default function PublishListingScreen() {
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
   const [location, setLocation] = useState('Manila, Metro Manila');
-  const [category, setCategory] = useState(
-    typeof categoryParam === 'string' && categoryParam !== 'marketplace'
-      ? categoryParam
-      : LISTING_CATEGORIES[0].id
-  );
+  const defaultCategory = getLeafCategories()[0]?.id ?? 'electronics-phones';
+  const [category, setCategory] = useState(() => {
+    if (typeof categoryParam === 'string' && categoryParam !== 'marketplace') {
+      return normalizeCategoryId(categoryParam) ?? defaultCategory;
+    }
+    return defaultCategory;
+  });
   const [attributes, setAttributes] = useState<ListingAttributes>({});
 
   useEffect(() => {
@@ -53,19 +60,17 @@ export default function PublishListingScreen() {
 
   useEffect(() => {
     if (typeof categoryParam === 'string' && categoryParam !== 'marketplace') {
-      setCategory(categoryParam);
+      const normalized = normalizeCategoryId(categoryParam);
+      if (normalized) setCategory(normalized);
     }
   }, [categoryParam]);
 
-  const handleCategoryChange = useCallback((nextCategory: string) => {
-    setCategory(nextCategory);
-    setAttributes((prev) => pruneAttributesForCategory(prev, nextCategory));
+  const handleCategorySelect = useCallback((node: { id: string }) => {
+    setCategory(node.id);
+    setAttributes((prev) => pruneAttributesForCategory(prev, node.id));
   }, []);
 
-  const selectedCategory = useMemo(
-    () => LISTING_CATEGORIES.find((item) => item.id === category) ?? LISTING_CATEGORIES[0],
-    [category]
-  );
+  const selectedCategoryLabel = useMemo(() => getCategoryLabel(category), [category]);
 
   const handleBack = useCallback(() => {
     router.back();
@@ -137,35 +142,9 @@ export default function PublishListingScreen() {
         />
 
         <Text style={{ ...typography.caption, color: colors.textSecondary, marginBottom: 8 }}>Category</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, marginBottom: 20 }}>
-          {LISTING_CATEGORIES.map((item) => {
-            const isSelected = category === item.id;
-            return (
-              <Pressable
-                key={item.id}
-                onPress={() => handleCategoryChange(item.id)}
-                style={{
-                  paddingHorizontal: 14,
-                  paddingVertical: 10,
-                  borderRadius: 999,
-                  borderWidth: 1,
-                  borderColor: isSelected ? colors.primary : colors.border,
-                  backgroundColor: isSelected ? `${colors.primary}12` : colors.surface,
-                }}
-              >
-                <Text
-                  style={{
-                    ...typography.caption,
-                    color: isSelected ? colors.primary : colors.textPrimary,
-                    fontFamily: isSelected ? 'PlusJakartaSans_600SemiBold' : 'PlusJakartaSans_400Regular',
-                  }}
-                >
-                  {item.emoji} {item.label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
+        <View style={{ marginBottom: 20, marginHorizontal: -16 }}>
+          <CategoryPicker selectedId={category} onSelect={handleCategorySelect} embedded />
+        </View>
 
         <Text style={{ ...typography.caption, color: colors.textSecondary, marginBottom: 8 }}>Title</Text>
         <TextInput
@@ -271,7 +250,7 @@ export default function PublishListingScreen() {
                 fontFamily: 'PlusJakartaSans_600SemiBold',
               }}
             >
-              Publish · {selectedCategory.label}
+              Publish · {selectedCategoryLabel}
             </Text>
           )}
         </Pressable>

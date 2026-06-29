@@ -1,69 +1,41 @@
 import type { Href } from 'expo-router';
 import {
-  Bike,
-  Building2,
-  Car,
-  CarFront,
-  Cog,
-  HandHelping,
-  Store,
-  type LucideIcon,
-} from 'lucide-react-native';
+  getBrowseTitle,
+  getHubCategories,
+  getTransportHubItems,
+  isListingBrowseSlug,
+  LISTING_BROWSE_SLUGS,
+  type ListingBrowseSlug,
+  type TransportHubItem,
+} from '@/src/features/listings/constants/category-tree';
 
 export interface HubCategory {
   id: string;
   label: string;
-  icon: LucideIcon;
+  icon: import('lucide-react-native').LucideIcon;
   href: Href;
 }
 
-export const HUB_CATEGORIES: HubCategory[] = [
-  { id: 'transport', label: 'Transport', icon: Car, href: '/transport' as Href },
-  { id: 'real-estate', label: 'Real Estate', icon: Building2, href: '/browse/real-estate' as Href },
-  { id: 'services', label: 'Services', icon: HandHelping, href: '/browse/services' as Href },
-  { id: 'marketplace', label: 'Marketplace', icon: Store, href: '/marketplace/search' as Href },
-];
-
-export interface TransportSubcategory {
-  id: string;
-  label: string;
-  icon: LucideIcon;
-  href?: Href;
-  comingSoon?: boolean;
+function hubHrefForNode(node: ReturnType<typeof getHubCategories>[number]): Href {
+  if (node.id === 'transport') return '/transport' as Href;
+  if (node.browseHref) return node.browseHref;
+  if (node.leaf) return `/browse/${node.id}` as Href;
+  return `/marketplace/categories?section=${node.id}` as Href;
 }
 
-export const TRANSPORT_SUBCATEGORIES: TransportSubcategory[] = [
-  { id: 'moto-buy', label: 'Buy motorcycle', icon: Bike, href: '/browse/moto-buy' as Href },
-  { id: 'auto-buy', label: 'Buy car', icon: CarFront, href: '/browse/auto-buy' as Href },
-  { id: 'moto-rent', label: 'Rent motorcycle', icon: Bike, href: '/search' as Href },
-  { id: 'auto-rent', label: 'Rent car', icon: Car, comingSoon: true },
-  { id: 'parts', label: 'Parts', icon: Cog, href: '/browse/parts' as Href },
-];
+export const HUB_CATEGORIES: HubCategory[] = getHubCategories().map((node) => ({
+  id: node.id,
+  label: node.label,
+  icon: node.icon,
+  href: hubHrefForNode(node),
+}));
 
-export const BROWSE_CATEGORY_LABELS: Record<string, string> = {
-  'moto-buy': 'Buy motorcycle',
-  'auto-buy': 'Buy car',
-  parts: 'Parts',
-  'real-estate': 'Real Estate',
-  services: 'Services',
-  marketplace: 'Marketplace',
-};
+export type TransportSubcategory = TransportHubItem;
 
-export const LISTING_BROWSE_SLUGS = [
-  'moto-buy',
-  'auto-buy',
-  'parts',
-  'real-estate',
-  'services',
-  'marketplace',
-] as const;
+export const TRANSPORT_SUBCATEGORIES: TransportSubcategory[] = getTransportHubItems();
 
-export type ListingBrowseSlug = (typeof LISTING_BROWSE_SLUGS)[number];
+export const BROWSE_CATEGORY_LABELS: Record<string, string> = Object.fromEntries(
+  LISTING_BROWSE_SLUGS.map((slug) => [slug, getBrowseTitle(slug)])
+);
 
-export function getBrowseTitle(slug: string): string {
-  return BROWSE_CATEGORY_LABELS[slug] ?? 'Browse';
-}
-
-export function isListingBrowseSlug(slug: string): slug is ListingBrowseSlug {
-  return (LISTING_BROWSE_SLUGS as readonly string[]).includes(slug);
-}
+export { LISTING_BROWSE_SLUGS, type ListingBrowseSlug, getBrowseTitle, isListingBrowseSlug };

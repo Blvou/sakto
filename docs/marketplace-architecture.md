@@ -1,7 +1,7 @@
 # Marketplace discovery architecture
 
-**Status:** implemented (MVP)  
-**Scope:** classifieds discovery — attributes, filters, sort, public view counts. No checkout, shipping, or moderation admin.
+**Status:** implemented (MVP + Avito-style categories)  
+**Scope:** classifieds discovery — 2-level category tree, attributes, quick filters, sort, public view counts. No checkout, shipping, or moderation admin.
 
 ## Boundaries
 
@@ -9,15 +9,26 @@
 |--------|--------|-------|
 | Marketplace listings | `src/features/listings/` | Buy/sell classifieds, chat conversion |
 | Vehicle rentals | `src/features/rentals/` | Separate tables and search (`app/search.tsx`) |
-| Real estate | Category `real-estate` inside listings | Not a separate vertical yet |
+| Real estate | Leaf slugs `real-estate-rent`, `real-estate-sale` | Split from legacy `real-estate` |
 
 See [why-not-used-goods-marketplace-now.md](./why-not-used-goods-marketplace-now.md) for product constraints.
+
+## Category tree (client catalog)
+
+Source of truth: [`src/features/listings/constants/category-tree.ts`](../src/features/listings/constants/category-tree.ts)
+
+- **2 levels:** section (navigation) → leaf slug stored in `listings.category`
+- **Hub:** `getHubCategories()` drives Home grid + `app/marketplace/categories.tsx` drill-down
+- **Legacy slugs:** `normalizeCategoryId()` maps old slugs (`auto`, `real-estate`, `electronics`, …) to leaf ids
+- **DB backfill:** migration `20250629120000_marketplace_category_slugs.sql`
+
+Future: map 1:1 to Supabase `categories (id, parent_id, slug, attribute_schema_key)` when admin editing is needed.
 
 ## Data model
 
 ```
 listings
-  ├── category (text slug)
+  ├── category (text leaf slug, e.g. electronics-phones)
   ├── attributes (jsonb) — validated client-side against attribute-fields catalog
   ├── view_count (int) — denormalized counter
   └── price, status, location, ...
@@ -31,19 +42,33 @@ listing_view_events
 
 ```mermaid
 flowchart LR
-  UI[ListingFilters + SearchBar] --> buildParams[buildListingSearchParams]
-  buildParams --> Hook[useCategoryListings / useMarketplaceListings]
+  QuickChips[Quick filter chips] --> Sheet[Filter sheet]
+  Sheet --> Params[listingFilterStateToSearchParams]
+  Params --> Hook[useCategoryListings / useMarketplaceListings]
   Hook --> API[fetchListingsPage]
   API --> DB[(listings + jsonb attributes)]
 ```
 
 **Sort options:** `newest` (default), `price_asc`, `price_desc`, `most_viewed`
 
-**Common filters:** price min/max, `condition` (when category includes it)
+**Common filters:** price min/max, location preset or text (`location.ilike`)
 
-**Category filters:** up to 4 `filterable` select attributes from [marketplace-attribute-catalog.md](./marketplace-attribute-catalog.md)
+**Quick filters:** top 4 select attributes by `filterPriority` (horizontal chips above results)
+
+**Category filters:** select + numeric range (`year`, `mileage`) via `attributes->>key` gte/lte
+
+See [marketplace-attribute-catalog.md](./marketplace-attribute-catalog.md) for per-schema fields.
 
 Location remains plain text — no geo radius in this phase.
+
+## Navigation
+
+| Screen | Route |
+|--------|-------|
+| Category picker | `app/marketplace/categories.tsx` |
+| Leaf browse | `app/browse/[category].tsx` |
+| All listings search | `app/(tabs)/marketplace/search.tsx` |
+| Transport hub | `app/transport/index.tsx` (buy + rent links) |
 
 ## View tracking
 
@@ -57,9 +82,9 @@ Location remains plain text — no geo radius in this phase.
 ## UX principles
 
 - Functional layout using design-system (`Chip`, `EmptyState`, `GridSkeleton`)
-- Visual polish deferred — flows and states first
 - English UI copy
-- Dedicated marketplace search: `app/marketplace/search.tsx` (not mixed with scooter search)
+- Breadcrumb on leaf browse: `CategoryBreadcrumb`
+- Dedicated marketplace search (not mixed with scooter search)
 
 ## Out of scope
 
@@ -70,7 +95,7 @@ Location remains plain text — no geo radius in this phase.
 
 ## Follow-ups
 
-- Server CHECK constraints or `category_attribute_schema` table
+- Supabase `categories` table synced from TS catalog
 - Full-text search on description + attributes
 - Saved searches and filter presets
-- Seller analytics dashboard (views over time)
+- Multi-select attribute filters

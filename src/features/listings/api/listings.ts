@@ -1,4 +1,4 @@
-import { resolveListingCategoryId } from '@/src/features/listings/constants/categories';
+import { resolveListingCategoryId } from '@/src/features/listings/constants/category-tree';
 import { syncListingMedia } from '@/src/features/listings/api/listing-photos';
 import { sanitizeListingAttributes } from '@/src/features/listings/utils/sanitize-attributes';
 import { supabase } from '@/src/lib/supabase';
@@ -108,8 +108,9 @@ type ListingsQueryBuilder = {
   ) => ListingsQueryBuilder;
   or: (filters: string) => ListingsQueryBuilder;
   eq: (column: string, value: string | number) => ListingsQueryBuilder;
-  gte: (column: string, value: number) => ListingsQueryBuilder;
-  lte: (column: string, value: number) => ListingsQueryBuilder;
+  gte: (column: string, value: number | string) => ListingsQueryBuilder;
+  lte: (column: string, value: number | string) => ListingsQueryBuilder;
+  ilike: (column: string, pattern: string) => ListingsQueryBuilder;
   limit: (count: number) => ListingsQueryBuilder;
 };
 
@@ -199,9 +200,27 @@ export async function fetchListingsPage(
     query = query.lte('price', params.priceMax);
   }
 
+  if (params.locationFilter) {
+    const locationTerm = sanitizeListingSearchTerm(params.locationFilter);
+    if (locationTerm) {
+      query = query.ilike('location', `%${locationTerm}%`);
+    }
+  }
+
   if (params.attributeFilters) {
     for (const [key, value] of Object.entries(params.attributeFilters)) {
       query = query.eq(`attributes->>${key}`, value);
+    }
+  }
+
+  if (params.attributeRangeFilters) {
+    for (const [key, range] of Object.entries(params.attributeRangeFilters)) {
+      if (range.min != null) {
+        query = query.gte(`attributes->>${key}`, String(range.min));
+      }
+      if (range.max != null) {
+        query = query.lte(`attributes->>${key}`, String(range.max));
+      }
     }
   }
 
