@@ -72,6 +72,12 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size }) => <User color={color} size={size} strokeWidth={1.5} />,
         }}
       />
+      <Tabs.Screen
+        name="marketplace"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }
