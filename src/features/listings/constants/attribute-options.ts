@@ -98,3 +98,37 @@ export const EMPLOYMENT_TYPE_OPTIONS = [
 ] as const;
 
 export const REMOTE_OPTIONS = ['On-site', 'Hybrid', 'Remote'] as const;
+
+export const BODY_TYPE_OPTIONS = [
+  'Sedan',
+  'SUV',
+  'Hatchback',
+  'Pickup',
+  'Van',
+  'Coupe',
+  'Wagon',
+  'Motorcycle',
+  'Scooter',
+] as const;
+
+export const VEHICLE_COLOR_OPTIONS = [
+  'White',
+  'Black',
+  'Silver',
+  'Gray',
+  'Red',
+  'Blue',
+  'Green',
+  'Brown',
+  'Other',
+] as const;
+
+export const LOCATION_PRESET_OPTIONS = [
+  'Metro Manila',
+  'Quezon City',
+  'Makati',
+  'Pasig',
+  'Taguig',
+  'Cebu City',
+  'Davao City',
+] as const;

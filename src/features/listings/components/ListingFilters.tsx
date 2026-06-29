@@ -4,14 +4,18 @@ import { ChevronDown, SlidersHorizontal, X } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Chip } from '@/src/design-system/components/Chip';
 import { typography } from '@/src/design-system/tokens';
+import { LOCATION_PRESET_OPTIONS } from '@/src/features/listings/constants/attribute-options';
 import {
   getFilterableFieldsForCategory,
+  getQuickFilterFieldsForCategory,
+  getRangeFilterFieldsForCategory,
   type ListingAttributeFieldDef,
 } from '@/src/features/listings/constants/attribute-fields';
 import {
   DEFAULT_LISTING_SORT,
   LISTING_SORT_OPTIONS,
   listingSortIdToShortLabel,
+  type AttributeRangeFilter,
   type ListingSearchParams,
   type ListingSortOption,
 } from '@/src/features/listings/utils/listing-filters';
@@ -21,14 +25,18 @@ export interface ListingFilterState {
   sort: ListingSortOption;
   priceMin: string;
   priceMax: string;
+  locationFilter: string;
   attributeFilters: Record<string, string>;
+  attributeRangeFilters: Record<string, { min: string; max: string }>;
 }
 
 export const DEFAULT_LISTING_FILTER_STATE: ListingFilterState = {
   sort: DEFAULT_LISTING_SORT,
   priceMin: '',
   priceMax: '',
+  locationFilter: '',
   attributeFilters: {},
+  attributeRangeFilters: {},
 };
 
 function parseOptionalPrice(value: string): number | null {
@@ -38,16 +46,41 @@ function parseOptionalPrice(value: string): number | null {
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
 }
 
+function parseOptionalNumber(value: string): number | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const parsed = Number(trimmed);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function buildAttributeRangeFilters(
+  state: ListingFilterState
+): Record<string, AttributeRangeFilter> | undefined {
+  const result: Record<string, AttributeRangeFilter> = {};
+
+  for (const [key, range] of Object.entries(state.attributeRangeFilters)) {
+    const min = parseOptionalNumber(range.min);
+    const max = parseOptionalNumber(range.max);
+    if (min != null || max != null) {
+      result[key] = { min, max };
+    }
+  }
+
+  return Object.keys(result).length > 0 ? result : undefined;
+}
+
 export function listingFilterStateToSearchParams(
-  category: string | null | undefined,
+  _category: string | null | undefined,
   state: ListingFilterState
 ): Partial<ListingSearchParams> {
   return {
     sort: state.sort,
     priceMin: parseOptionalPrice(state.priceMin),
     priceMax: parseOptionalPrice(state.priceMax),
+    locationFilter: state.locationFilter.trim() || null,
     attributeFilters:
       Object.keys(state.attributeFilters).length > 0 ? state.attributeFilters : undefined,
+    attributeRangeFilters: buildAttributeRangeFilters(state),
   };
 }
 
@@ -86,6 +119,64 @@ function SelectChipRow({
           ))}
         </View>
       </ScrollView>
+    </View>
+  );
+}
+
+function RangeFilterRow({
+  field,
+  range,
+  onChange,
+}: {
+  field: ListingAttributeFieldDef;
+  range: { min: string; max: string };
+  onChange: (key: string, next: { min: string; max: string }) => void;
+}) {
+  const { colors } = useTheme();
+
+  return (
+    <View style={{ marginBottom: 16 }}>
+      <Text style={{ ...typography.caption, color: colors.textSecondary, marginBottom: 8 }}>
+        {field.label}
+      </Text>
+      <View style={{ flexDirection: 'row', gap: 12 }}>
+        <TextInput
+          value={range.min}
+          onChangeText={(text) => onChange(field.key, { ...range, min: text })}
+          placeholder="Min"
+          placeholderTextColor={colors.textSecondary}
+          keyboardType="numeric"
+          style={{
+            flex: 1,
+            ...typography.body,
+            color: colors.textPrimary,
+            borderWidth: 1,
+            borderColor: colors.border,
+            borderRadius: 12,
+            paddingHorizontal: 12,
+            paddingVertical: 10,
+            minHeight: 44,
+          }}
+        />
+        <TextInput
+          value={range.max}
+          onChangeText={(text) => onChange(field.key, { ...range, max: text })}
+          placeholder="Max"
+          placeholderTextColor={colors.textSecondary}
+          keyboardType="numeric"
+          style={{
+            flex: 1,
+            ...typography.body,
+            color: colors.textPrimary,
+            borderWidth: 1,
+            borderColor: colors.border,
+            borderRadius: 12,
+            paddingHorizontal: 12,
+            paddingVertical: 10,
+            minHeight: 44,
+          }}
+        />
+      </View>
     </View>
   );
 }
@@ -164,6 +255,25 @@ function ToolbarButton({
   );
 }
 
+function SectionTitle({ title }: { title: string }) {
+  const { colors } = useTheme();
+  return (
+    <Text
+      style={{
+        ...typography.caption,
+        color: colors.textSecondary,
+        fontFamily: 'PlusJakartaSans_600SemiBold',
+        marginBottom: 10,
+        marginTop: 4,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+      }}
+    >
+      {title}
+    </Text>
+  );
+}
+
 export function ListingFilters({
   categoryId,
   value,
@@ -176,15 +286,30 @@ export function ListingFilters({
   const [sortOpen, setSortOpen] = useState(false);
   const [draft, setDraft] = useState<ListingFilterState>(value);
 
-  const filterableFields = useMemo(
-    () => getFilterableFieldsForCategory(categoryId),
+  const quickFilterFields = useMemo(
+    () => getQuickFilterFieldsForCategory(categoryId),
+    [categoryId]
+  );
+
+  const filterableSelectFields = useMemo(() => {
+    return getFilterableFieldsForCategory(categoryId).filter(
+      (field) => field.filterUI === 'select' && field.options?.length
+    );
+  }, [categoryId]);
+
+  const rangeFilterFields = useMemo(
+    () => getRangeFilterFieldsForCategory(categoryId),
     [categoryId]
   );
 
   const activeFilterCount = useMemo(() => {
     let count = 0;
     if (value.priceMin.trim() || value.priceMax.trim()) count += 1;
+    if (value.locationFilter.trim()) count += 1;
     count += Object.values(value.attributeFilters).filter(Boolean).length;
+    count += Object.values(value.attributeRangeFilters).filter(
+      (range) => range.min.trim() || range.max.trim()
+    ).length;
     return count;
   }, [value]);
 
@@ -199,15 +324,35 @@ export function ListingFilters({
       pills.push({ key: 'price', label });
     }
 
-    for (const field of filterableFields) {
+    if (value.locationFilter.trim()) {
+      pills.push({ key: 'location', label: value.locationFilter.trim() });
+    }
+
+    for (const field of filterableSelectFields) {
       const selected = value.attributeFilters[field.key];
       if (selected) {
         pills.push({ key: field.key, label: `${field.label}: ${selected}` });
       }
     }
 
+    for (const field of rangeFilterFields) {
+      const range = value.attributeRangeFilters[field.key];
+      if (!range) continue;
+      const min = range.min.trim();
+      const max = range.max.trim();
+      if (min || max) {
+        const label =
+          min && max
+            ? `${field.label}: ${min}–${max}`
+            : min
+              ? `${field.label}: from ${min}`
+              : `${field.label}: up to ${max}`;
+        pills.push({ key: `range:${field.key}`, label });
+      }
+    }
+
     return pills;
-  }, [filterableFields, value]);
+  }, [filterableSelectFields, rangeFilterFields, value]);
 
   const openFilters = useCallback(() => {
     setDraft(value);
@@ -246,10 +391,42 @@ export function ListingFilters({
     });
   }, []);
 
+  const handleDraftRange = useCallback((key: string, next: { min: string; max: string }) => {
+    setDraft((prev) => ({
+      ...prev,
+      attributeRangeFilters: { ...prev.attributeRangeFilters, [key]: next },
+    }));
+  }, []);
+
+  const handleQuickFilter = useCallback(
+    (field: ListingAttributeFieldDef, option: string) => {
+      const current = value.attributeFilters[field.key];
+      const nextFilters = { ...value.attributeFilters };
+      if (current === option) {
+        delete nextFilters[field.key];
+      } else {
+        nextFilters[field.key] = option;
+      }
+      onChange({ ...value, attributeFilters: nextFilters });
+    },
+    [onChange, value]
+  );
+
   const clearFilterPill = useCallback(
     (key: string) => {
       if (key === 'price') {
         onChange({ ...value, priceMin: '', priceMax: '' });
+        return;
+      }
+      if (key === 'location') {
+        onChange({ ...value, locationFilter: '' });
+        return;
+      }
+      if (key.startsWith('range:')) {
+        const rangeKey = key.replace('range:', '');
+        const nextRanges = { ...value.attributeRangeFilters };
+        delete nextRanges[rangeKey];
+        onChange({ ...value, attributeRangeFilters: nextRanges });
         return;
       }
 
@@ -265,6 +442,23 @@ export function ListingFilters({
   return (
     <>
       <View style={{ paddingHorizontal: contentPadding, gap: 10 }}>
+        {quickFilterFields.length > 0 ? (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <View style={{ flexDirection: 'row', gap: 8, paddingRight: contentPadding }}>
+              {quickFilterFields.map((field) =>
+                (field.options ?? []).slice(0, 5).map((option) => (
+                  <Chip
+                    key={`${field.key}-${option}`}
+                    label={option}
+                    active={value.attributeFilters[field.key] === option}
+                    onPress={() => handleQuickFilter(field, option)}
+                  />
+                ))
+              )}
+            </View>
+          </ScrollView>
+        ) : null}
+
         <View style={{ flexDirection: 'row', gap: 8 }}>
           <ToolbarButton
             label="Filters"
@@ -393,7 +587,7 @@ export function ListingFilters({
               borderTopLeftRadius: 16,
               borderTopRightRadius: 16,
               padding: 20,
-              maxHeight: '80%',
+              maxHeight: '85%',
             }}
             onPress={(event) => event.stopPropagation()}
           >
@@ -403,14 +597,12 @@ export function ListingFilters({
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false}>
-              <Text style={{ ...typography.caption, color: colors.textSecondary, marginBottom: 8 }}>
-                Price range (₱)
-              </Text>
+              <SectionTitle title="Price" />
               <View style={{ flexDirection: 'row', gap: 12, marginBottom: 20 }}>
                 <TextInput
                   value={draft.priceMin}
                   onChangeText={(text) => setDraft((prev) => ({ ...prev, priceMin: text }))}
-                  placeholder="Min"
+                  placeholder="Min ₱"
                   placeholderTextColor={colors.textSecondary}
                   keyboardType="numeric"
                   style={{
@@ -428,7 +620,7 @@ export function ListingFilters({
                 <TextInput
                   value={draft.priceMax}
                   onChangeText={(text) => setDraft((prev) => ({ ...prev, priceMax: text }))}
-                  placeholder="Max"
+                  placeholder="Max ₱"
                   placeholderTextColor={colors.textSecondary}
                   keyboardType="numeric"
                   style={{
@@ -445,12 +637,61 @@ export function ListingFilters({
                 />
               </View>
 
-              {filterableFields.map((field) => (
+              <SectionTitle title="Location" />
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
+                <View style={{ flexDirection: 'row', gap: 8, paddingRight: 8 }}>
+                  {LOCATION_PRESET_OPTIONS.map((preset) => (
+                    <Chip
+                      key={preset}
+                      label={preset}
+                      active={draft.locationFilter === preset}
+                      onPress={() =>
+                        setDraft((prev) => ({
+                          ...prev,
+                          locationFilter: prev.locationFilter === preset ? '' : preset,
+                        }))
+                      }
+                    />
+                  ))}
+                </View>
+              </ScrollView>
+              <TextInput
+                value={draft.locationFilter}
+                onChangeText={(text) => setDraft((prev) => ({ ...prev, locationFilter: text }))}
+                placeholder="City or area"
+                placeholderTextColor={colors.textSecondary}
+                style={{
+                  ...typography.body,
+                  color: colors.textPrimary,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  borderRadius: 12,
+                  paddingHorizontal: 12,
+                  paddingVertical: 10,
+                  minHeight: 44,
+                  marginBottom: 20,
+                }}
+              />
+
+              {(filterableSelectFields.length > 0 || rangeFilterFields.length > 0) && (
+                <SectionTitle title="Details" />
+              )}
+
+              {filterableSelectFields.map((field) => (
                 <SelectChipRow
                   key={field.key}
                   field={field}
                   selected={draft.attributeFilters[field.key]}
                   onSelect={handleDraftAttribute}
+                />
+              ))}
+
+              {rangeFilterFields.map((field) => (
+                <RangeFilterRow
+                  key={field.key}
+                  field={field}
+                  range={draft.attributeRangeFilters[field.key] ?? { min: '', max: '' }}
+                  onChange={handleDraftRange}
                 />
               ))}
             </ScrollView>
