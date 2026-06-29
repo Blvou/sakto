@@ -62,6 +62,7 @@ export default function MarketplaceCategoriesScreen() {
       <CategoryPicker
         initialSectionId={typeof section === 'string' ? section : null}
         onSelect={handleSelect}
+        scope="marketplace"
       />
     </View>
   );

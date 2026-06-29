@@ -1,7 +1,7 @@
 import type { Href } from 'expo-router';
 import {
   getBrowseTitle,
-  getHubCategories,
+  getHomeHubCategories,
   getTransportHubItems,
   isListingBrowseSlug,
   LISTING_BROWSE_SLUGS,
@@ -16,14 +16,15 @@ export interface HubCategory {
   href: Href;
 }
 
-function hubHrefForNode(node: ReturnType<typeof getHubCategories>[number]): Href {
+function hubHrefForNode(node: ReturnType<typeof getHomeHubCategories>[number]): Href {
   if (node.id === 'transport') return '/transport' as Href;
+  if (node.id === 'marketplace') return '/marketplace/categories' as Href;
   if (node.browseHref) return node.browseHref;
   if (node.leaf) return `/browse/${node.id}` as Href;
   return `/marketplace/categories?section=${node.id}` as Href;
 }
 
-export const HUB_CATEGORIES: HubCategory[] = getHubCategories().map((node) => ({
+export const HUB_CATEGORIES: HubCategory[] = getHomeHubCategories().map((node) => ({
   id: node.id,
   label: node.label,
   icon: node.icon,

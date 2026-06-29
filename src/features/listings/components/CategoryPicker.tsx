@@ -5,6 +5,7 @@ import { typography } from '@/src/design-system/tokens';
 import {
   getCategoryNode,
   getChildCategories,
+  getMarketplaceSectionCategories,
   getRootCategories,
   type CategoryNode,
 } from '@/src/features/listings/constants/category-tree';
@@ -22,6 +23,8 @@ export interface CategoryPickerProps {
   drillDown?: boolean;
   /** Skip outer ScrollView when embedded inside another scroll container. */
   embedded?: boolean;
+  /** `marketplace` = goods sections only; `full` = all roots (publish). */
+  scope?: 'marketplace' | 'full';
 }
 
 export function CategoryPicker({
@@ -30,6 +33,7 @@ export function CategoryPicker({
   onSelect,
   drillDown = true,
   embedded = false,
+  scope = 'full',
 }: CategoryPickerProps) {
   const { colors } = useTheme();
   const { horizontalPadding, scale } = useResponsive();
@@ -46,7 +50,10 @@ export function CategoryPicker({
 
   const [activeParentId, setActiveParentId] = useState<string | null>(initialParent);
 
-  const sections = useMemo(() => getRootCategories(), []);
+  const sections = useMemo(
+    () => (scope === 'marketplace' ? getMarketplaceSectionCategories() : getRootCategories()),
+    [scope]
+  );
   const children = useMemo(
     () => (activeParentId ? getChildCategories(activeParentId) : []),
     [activeParentId]

@@ -246,11 +246,11 @@ const CATEGORY_NODES: CategoryNode[] = [
     sortOrder: 4,
   },
 
-  // Fashion (section)
+  // Clothes (section)
   {
     id: 'fashion',
     parentId: null,
-    label: 'Fashion',
+    label: 'Clothes',
     icon: Shirt,
     leaf: false,
     attributeSchemaKey: 'clothing',
@@ -380,11 +380,11 @@ const CATEGORY_NODES: CategoryNode[] = [
   {
     id: 'marketplace',
     parentId: null,
-    label: 'All listings',
+    label: 'Marketplace',
     icon: Store,
     leaf: true,
     attributeSchemaKey: 'default',
-    browseHref: '/marketplace/search' as Href,
+    browseHref: '/marketplace/categories' as Href,
     legacySlugs: ['marketplace', 'more'],
     sortOrder: 99,
   },
@@ -400,18 +400,55 @@ for (const node of CATEGORY_NODES) {
   }
 }
 
-/** Root sections for hub grid and category picker step 1. */
+/** Home screen hub tiles (4). */
+export const HOME_HUB_CATEGORY_IDS = [
+  'transport',
+  'real-estate',
+  'services',
+  'marketplace',
+] as const;
+
+/** Sections browsable inside Marketplace (not on home hub). */
+export const MARKETPLACE_SECTION_IDS = [
+  'electronics',
+  'home-living',
+  'fashion',
+  'jobs',
+  'games-hobbies',
+] as const;
+
+function sortByOrder(nodes: CategoryNode[]): CategoryNode[] {
+  return [...nodes].sort((a, b) => a.sortOrder - b.sortOrder);
+}
+
+/** Home hub: Transport, Real Estate, Services, Marketplace. */
+export function getHomeHubCategories(): CategoryNode[] {
+  return sortByOrder(
+    HOME_HUB_CATEGORY_IDS.map((id) => NODE_BY_ID.get(id)).filter(
+      (node): node is CategoryNode => node != null
+    )
+  );
+}
+
+/** Marketplace category picker / shortcuts (goods & hobbies). */
+export function getMarketplaceSectionCategories(): CategoryNode[] {
+  return sortByOrder(
+    MARKETPLACE_SECTION_IDS.map((id) => NODE_BY_ID.get(id)).filter(
+      (node): node is CategoryNode => node != null
+    )
+  );
+}
+
+/** All top-level sections except virtual marketplace slug (publish picker). */
 export function getRootCategories(): CategoryNode[] {
   return CATEGORY_NODES.filter(
     (node) => node.parentId === null && node.id !== 'marketplace'
   ).sort((a, b) => a.sortOrder - b.sortOrder);
 }
 
-/** Hub tiles: roots + marketplace catch-all. */
+/** @deprecated Use getHomeHubCategories(). */
 export function getHubCategories(): CategoryNode[] {
-  return CATEGORY_NODES.filter((node) => node.parentId === null).sort(
-    (a, b) => a.sortOrder - b.sortOrder
-  );
+  return getHomeHubCategories();
 }
 
 export function getChildCategories(parentId: string): CategoryNode[] {

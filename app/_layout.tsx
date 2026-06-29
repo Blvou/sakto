@@ -125,8 +125,8 @@ function RootLayoutNav() {
         options={{ title: 'Browse', presentation: 'card', headerShown: false }}
       />
       <Stack.Screen
-        name="marketplace/categories"
-        options={{ title: 'Categories', presentation: 'card', headerShown: false }}
+        name="marketplace"
+        options={{ headerShown: false }}
       />
       <Stack.Screen name="(auth)" options={{ headerShown: false }} />
       <Stack.Screen
