@@ -24,7 +24,9 @@ function buildParams(
     sort: options.searchParams?.sort,
     priceMin: options.searchParams?.priceMin,
     priceMax: options.searchParams?.priceMax,
+    locationFilter: options.searchParams?.locationFilter,
     attributeFilters: options.searchParams?.attributeFilters,
+    attributeRangeFilters: options.searchParams?.attributeRangeFilters,
   });
 }
 
